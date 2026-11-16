@@ -1,0 +1,1 @@
+export const env={PUBLIC_BACKEND_API_URL:"https://accounts.texastravels.cloud",PUBLIC_OPERATIONAL_PORTAL_API_URL:"https://operations.texastravels.cloud",PUBLIC_SALES_PORTAL_API_URL:"https://sales.texastravels.cloud",PUBLIC_SIGNALR_URL:"https://sales.texastravels.cloud"}

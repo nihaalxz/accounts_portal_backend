@@ -1,0 +1,935 @@
+import { B as append, Bt as reset, Ct as user_derived, D as head, Et as store_get, G as text, H as from_html, I as if_block, K as delegate, N as each, Nt as pop, P as index, Pt as push, Q as get, R as set_text, S as select_option, Tt as setup_stores, _ as set_attribute, b as bind_select_value, bt as state, dt as $document, g as remove_input_defaults, gt as proxy, ht as sibling, m as bind_value, mt as first_child, n as onDestroy, ot as template_effect, pt as child, q as delegated, r as onMount, rt as deferred_template_effect, st as user_effect, tt as untrack, v as set_checked, vt as set, x as init_select, xt as update, y as set_value, zt as next } from "../chunks/dXkmWTgM.js";
+import { t as goto } from "../chunks/Dp2xgyGd.js";
+import "../chunks/DhaYE-8x.js";
+import { t as apiFetch } from "../chunks/DFpxn_Ez.js";
+import { r as toast } from "../chunks/CbPRQHfn.js";
+import { t as Chevron_left } from "../chunks/bgfi4Y0B2.js";
+import { t as Chevron_right } from "../chunks/BQLzQDdY2.js";
+import { t as Download } from "../chunks/D8w6XH0S2.js";
+import { t as Eye } from "../chunks/CTzUc-eH2.js";
+import { t as Printer } from "../chunks/Ds2DlsUi.js";
+import { t as Refresh_cw } from "../chunks/DpTJy0Wb.js";
+import { t as Search } from "../chunks/D7t9qluE.js";
+import { t as Sliders_horizontal } from "../chunks/BI9_YWC7.js";
+import { i as formatDateOnly, o as getBahrainDateString } from "../chunks/Cu8_Vl4p.js";
+import { t as page } from "../chunks/BbFVnOtC.js";
+import { t as Button } from "../chunks/BhXsq3bC.js";
+import "../chunks/BkmzcFjp2.js";
+import { t as MoneyDisplay } from "../chunks/CIVSRuaR2.js";
+import { t as DateDisplay } from "../chunks/DEr_pDJT2.js";
+import "../chunks/1GQYhOnW2.js";
+import { t as exportToCSV } from "../chunks/C74Z4VDd2.js";
+import { t as previewDocument } from "../chunks/BRgpSVW42.js";
+import { t as SalesEntriesRealtimeController } from "../chunks/C1wieQ1Y.js";
+//#region src/routes/(app)/sales/bookings/[serviceType]/+page.svelte
+var root = from_html(`<!> <span> </span>`, 1);
+var root_1 = from_html(`<!> <span>Print Document</span>`, 1);
+var root_2 = from_html(`<!> <span>Reload</span>`, 1);
+var root_3 = from_html(`<!> <span>Columns</span>`, 1);
+var root_4 = from_html(`<label class="flex items-center gap-2 cursor-pointer select-none py-1 hover:bg-muted/50 rounded px-1"><input type="checkbox" class="rounded border-border text-primary focus:ring-primary/20 h-3.5 w-3.5 cursor-pointer"/> <span class="text-foreground"> </span></label>`);
+var root_5 = from_html(`<div class="absolute right-0 mt-2 w-52 bg-card border border-border rounded-xl shadow-xl p-3.5 z-50 space-y-2 text-xs"><p class="font-bold text-foreground mb-2">Display Columns</p> <!></div>`);
+var root_6 = from_html(`<div class="bg-card border border-border rounded-2xl p-6 h-96 flex items-center justify-center animate-pulse"><!></div>`);
+var root_7 = from_html(`<th class="p-4 w-32 cursor-pointer hover:text-foreground select-none">Document Ref <!></th>`);
+var root_8 = from_html(`<th class="p-4 cursor-pointer hover:text-foreground select-none">Customer Head <!></th>`);
+var root_9 = from_html(`<th class="p-4 cursor-pointer hover:text-foreground select-none">Salesman <!></th>`);
+var root_10 = from_html(`<th class="p-4">Specifications</th>`);
+var root_11 = from_html(`<th class="p-4 cursor-pointer hover:text-foreground select-none">Payable Sale <!></th>`);
+var root_12 = from_html(`<th class="p-4 cursor-pointer hover:text-foreground select-none">Status <!></th>`);
+var root_13 = from_html(`<th class="p-4 cursor-pointer hover:text-foreground select-none">Deal Status <!></th>`);
+var root_14 = from_html(`<th class="p-4 w-32 cursor-pointer hover:text-foreground select-none">Logged Date <!></th>`);
+var root_15 = from_html(`<td class="p-4 font-mono font-medium text-foreground font-bold"> </td>`);
+var root_16 = from_html(`<td class="p-4 font-semibold text-foreground"> </td>`);
+var root_17 = from_html(`<td class="p-4 text-muted-foreground"> </td>`);
+var root_18 = from_html(`<span class="block text-foreground font-medium text-xs mb-0.5">Pax: <strong> </strong></span>`);
+var root_19 = from_html(`<!> <strong> </strong> `, 1);
+var root_20 = from_html(`Guest: <strong> </strong> `, 1);
+var root_21 = from_html(`<span class="block text-foreground font-medium text-xs mb-0.5">Applicant: <strong> </strong></span>`);
+var root_22 = from_html(`<!> Package: <strong> </strong> `, 1);
+var root_23 = from_html(`Applicant: <strong> </strong> `, 1);
+var root_24 = from_html(`Passenger: <strong> </strong> `, 1);
+var root_25 = from_html(`<span class="block text-foreground font-medium text-xs mb-0.5">Passenger: <strong> </strong></span>`);
+var root_26 = from_html(`<!> Pickup: <strong> </strong>`, 1);
+var root_27 = from_html(`Service: <strong> </strong> `, 1);
+var root_28 = from_html(`<td class="p-4 text-muted-foreground"><!></td>`);
+var root_29 = from_html(`<td class="p-4 font-mono font-bold text-foreground"><!></td>`);
+var root_30 = from_html(`<td class="p-4 capitalize text-muted-foreground font-semibold"> </td>`);
+var root_31 = from_html(`<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Closed</span>`);
+var root_32 = from_html(`<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Open Deal</span>`);
+var root_33 = from_html(`<td class="p-4"><!></td>`);
+var root_34 = from_html(`<td class="p-4 font-mono text-muted-foreground"><!></td>`);
+var root_35 = from_html(`<tr class="hover:bg-muted/10 transition-colors"><!><!><!><!><!><!><!><!><td class="p-4 text-center print:hidden"><a class="inline-flex p-1.5 hover:bg-muted text-muted-foreground hover:text-primary rounded-lg transition-colors" title="View details"><!></a></td></tr>`);
+var root_36 = from_html(`<!> Prev`, 1);
+var root_37 = from_html(`Next <!>`, 1);
+var root_38 = from_html(`<div class="bg-card border border-border rounded-2xl overflow-x-auto shadow-xs print:border-none print:shadow-none max-w-full"><table class="w-full min-w-[800px] text-left border-collapse text-xs"><thead><tr class="bg-muted/30 border-b border-border text-muted-foreground font-semibold print:bg-transparent"><!><!><!><!><!><!><!><!><th class="p-4 w-20 text-center print:hidden">View</th></tr></thead><tbody class="divide-y divide-border/60"></tbody></table></div> <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs pt-4 print:hidden"><span class="text-muted-foreground"> </span> <div class="flex items-center gap-4"><div class="flex items-center gap-2"><span class="text-xs text-muted-foreground whitespace-nowrap">Rows per page:</span> <select class="bg-background border border-border rounded-xl px-2.5 py-1 text-xs text-foreground focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer"><option>10</option><option>25</option><option>50</option><option>100</option><option>200</option><option>500</option><option>1000 (All)</option></select></div> <div class="flex gap-2"><!> <!></div></div></div>`, 1);
+var root_39 = from_html(`<div class="bg-card border border-border rounded-2xl p-16 text-center text-muted-foreground text-xs print:hidden"> </div>`);
+var root_40 = from_html(`<div class="space-y-6 print:space-y-0 print:p-0"><div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden"><div class="flex flex-col gap-1"><h1 class="text-xl font-bold text-foreground font-sans capitalize"> </h1> <p class="text-xs text-muted-foreground">Workspace tracking operational details, payment schedules, and general ledger journal postings.</p></div> <div class="flex flex-wrap gap-2.5"><!> <!> <!></div></div> <div class="bg-card border border-border rounded-2xl p-4 flex flex-col gap-4 print:hidden"><div class="flex flex-col md:flex-row gap-3"><div class="relative flex-1"><!> <input type="text" placeholder="Search Document Ref, Passenger, Route, Customer Head..." class="w-full text-xs pl-10 pr-4 py-2 border border-border rounded-xl bg-background text-foreground placeholder-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20"/></div> <select class="text-xs p-2 border border-border rounded-xl bg-background text-foreground w-full md:w-44 focus:outline-none"><option>All Payment Statuses</option><option>Paid</option><option>Pending</option><option>Failed</option></select> <div class="relative"><!> <!></div></div> <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2.5 border-t border-border/40 text-xs"><div><label for="created-from" class="block text-muted-foreground mb-1 font-semibold">Created From</label> <input id="created-from" type="date" class="w-full p-2 border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"/></div> <div><label for="created-to" class="block text-muted-foreground mb-1 font-semibold">Created To</label> <input id="created-to" type="date" class="w-full p-2 border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"/></div> <div class="flex items-end"><!></div></div></div> <!></div>`);
+function _page($$anchor, $$props) {
+	push($$props, true);
+	const $page = () => store_get(page, "$page", $$stores);
+	const [$$stores, $$cleanup] = setup_stores();
+	const serviceType = user_derived(() => $page().params.serviceType || "flights");
+	let dataList = state(null);
+	let loading = state(false);
+	let currentPage = state(1);
+	let pageSize = state(10);
+	let searchVal = state(proxy($page().url.searchParams.get("search") || ""));
+	let statusFilter = state("all");
+	let sortBy = state("Id");
+	let sortDesc = state(true);
+	let exportingCSV = state(false);
+	let realtimeController = null;
+	onMount(() => {
+		realtimeController = new SalesEntriesRealtimeController(() => fetchBookings(), 200);
+		realtimeController.mount();
+	});
+	onDestroy(() => {
+		realtimeController?.unmount();
+	});
+	let startDate = state("");
+	let endDate = state("");
+	let showColumnChooser = state(false);
+	let columns = proxy({
+		id: {
+			label: "Booking ID",
+			visible: true
+		},
+		headName: {
+			label: "Customer Head",
+			visible: true
+		},
+		salesmanName: {
+			label: "Salesman",
+			visible: true
+		},
+		mainDetails: {
+			label: "Main Specifications",
+			visible: true
+		},
+		payableAmount: {
+			label: "Payable Sale",
+			visible: true
+		},
+		processingStatus: {
+			label: "Process Status",
+			visible: true
+		},
+		isDealClosed: {
+			label: "Deal Status",
+			visible: true
+		},
+		createdAt: {
+			label: "Date Logged",
+			visible: true
+		}
+	});
+	let searchTimeout;
+	function handleSearchInput(val) {
+		clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(() => {
+			set(searchVal, val, true);
+			set(currentPage, 1);
+			fetchBookings();
+		}, 400);
+	}
+	function getBackendSegment(type) {
+		const t = (type || "").toLowerCase();
+		if (t === "holiday" || t === "holidays") return "holiday-packages";
+		if (t === "visa" || t === "visas") return "visa";
+		if (t === "flight" || t === "flights") return "flights";
+		if (t === "hotel" || t === "hotels") return "hotels";
+		if (t === "transport" || t === "transportation") return "transportation";
+		if (t === "other" || t === "other-services") return "other-services";
+		return t;
+	}
+	async function fetchBookings() {
+		set(loading, true);
+		try {
+			const segment = getBackendSegment(get(serviceType));
+			const params = {
+				page: get(currentPage),
+				pageSize: get(pageSize)
+			};
+			if (get(statusFilter) !== "all") params.status = get(statusFilter);
+			if (get(searchVal).trim()) params.search = get(searchVal).trim();
+			if (get(startDate)) params.startDate = get(startDate);
+			if (get(endDate)) params.endDate = get(endDate);
+			const res = await apiFetch(`api/sales-entries/${segment}`, { params });
+			set(dataList, res, true);
+		} catch (err) {
+			console.error("Failed to load bookings list:", err);
+		} finally {
+			set(loading, false);
+		}
+	}
+	user_effect(() => {
+		const targetId = $page().url.searchParams.get("id") || $page().url.searchParams.get("bookingId");
+		if (targetId) {
+			const rawType = (get(serviceType) || "").toLowerCase();
+			let canonicalType = rawType;
+			if (rawType === "visas" || rawType === "visa") canonicalType = "visa";
+			else if (rawType === "holidays" || rawType === "holiday") canonicalType = "holiday";
+			else if (rawType === "transport" || rawType === "transportation") canonicalType = "transportation";
+			else if (rawType === "flights" || rawType === "flight") canonicalType = "flights";
+			else if (rawType === "hotels" || rawType === "hotel") canonicalType = "hotels";
+			else if (rawType === "vfs") canonicalType = "vfs";
+			else if (rawType === "other" || rawType === "other-services") canonicalType = "other-services";
+			goto(`/sales/bookings/${canonicalType}/${encodeURIComponent(targetId)}`, { replaceState: true });
+			return;
+		}
+		if (get(serviceType)) untrack(() => {
+			const urlSearch = $page().url.searchParams.get("search");
+			if (urlSearch && get(searchVal) !== urlSearch) set(searchVal, urlSearch, true);
+			set(currentPage, 1);
+			fetchBookings();
+		});
+	});
+	function handleSort(colName) {
+		if (get(sortBy) === colName) set(sortDesc, !get(sortDesc));
+		else {
+			set(sortBy, colName, true);
+			set(sortDesc, true);
+		}
+		if (get(dataList) && get(dataList).items) get(dataList).items = [...get(dataList).items].sort((a, b) => {
+			let valA = a[colName] ?? "";
+			let valB = b[colName] ?? "";
+			if (typeof valA === "string") valA = valA.toLowerCase();
+			if (typeof valB === "string") valB = valB.toLowerCase();
+			if (valA < valB) return get(sortDesc) ? 1 : -1;
+			if (valA > valB) return get(sortDesc) ? -1 : 1;
+			return 0;
+		});
+	}
+	async function exportToCSV$1() {
+		set(exportingCSV, true);
+		try {
+			const segment = getBackendSegment(get(serviceType));
+			const params = {
+				page: 1,
+				pageSize: 1e4
+			};
+			if (get(statusFilter) !== "all") params.status = get(statusFilter);
+			if (get(searchVal).trim()) params.search = get(searchVal).trim();
+			if (get(startDate)) params.startDate = get(startDate);
+			if (get(endDate)) params.endDate = get(endDate);
+			const items = (await apiFetch(`api/sales-entries/${segment}`, { params }).catch((err) => {
+				console.warn("apiFetch bookings failed, falling back to active list:", err);
+				return null;
+			}))?.items || get(dataList)?.items || [];
+			if (items.length === 0) {
+				toast.info("No booking records available to export.");
+				return;
+			}
+			const activeKeys = Object.keys(columns).filter((k) => columns[k]?.visible);
+			const headers = activeKeys.map((k) => columns[k]?.label || k);
+			const rows = items.map((row) => {
+				return activeKeys.map((k) => {
+					if (k === "id") return row.documentNumber || `#${row.id}`;
+					if (k === "payableAmount") return row.payableAmount ?? 0;
+					if (k === "profit") return row.profit ?? 0;
+					if (k === "isDealClosed") return row.isDealClosed ? "Closed" : "Open Deal";
+					if (k === "createdAt") return row.createdAt ? formatDateOnly(row.createdAt) : "";
+					if (k === "mainDetails") {
+						if (get(serviceType) === "flights") return `${row.passengerNames ? "Pax: " + row.passengerNames + " - " : ""}${row.fromLocation || ""} to ${row.toLocation || ""} (${row.passengerCount || 1} pax)`;
+						if (get(serviceType) === "hotels") return `Guest: ${row.guestName || ""} in ${row.country || ""}`;
+						if (get(serviceType) === "visa") return `${row.applicantNames ? "Applicant: " + row.applicantNames + " - " : ""}${row.visaPackName || ""} (${row.applicantCount || 1} applicants)`;
+						if (get(serviceType) === "vfs") return `Applicant: ${row.name || ""} - ${row.visaType || ""}`;
+						if (get(serviceType) === "holiday") return `Passenger: ${row.passengerName || ""} in ${row.country || ""}`;
+						if (get(serviceType) === "transportation") return `Passenger: ${row.name || ""} - ${row.pickup || ""} to ${row.drop || ""}`;
+						return `Client: ${row.name || ""} - Service: ${row.serviceName || ""}`;
+					}
+					return row[k] ?? "";
+				});
+			});
+			exportToCSV(`${get(serviceType)}_bookings_export_${getBahrainDateString()}.csv`, headers, rows);
+			toast.success("CSV exported successfully.");
+		} catch (err) {
+			console.error("Failed to export bookings CSV:", err);
+			toast.error("Failed to export CSV: " + (err?.message || "Unknown error"));
+		} finally {
+			set(exportingCSV, false);
+		}
+	}
+	function handlePrint() {
+		previewDocument("list", get(serviceType) === "holiday" ? "holiday" : get(serviceType) === "flights" ? "flight" : get(serviceType) === "hotels" ? "hotel" : get(serviceType) === "transportation" ? "transport" : get(serviceType), {
+			searchTerm: get(searchVal),
+			paymentStatus: get(statusFilter)
+		});
+		toast.info("Generating print document...");
+	}
+	function toggleColumn(key) {
+		const col = columns[key];
+		if (col) col.visible = !col.visible;
+	}
+	var div = root_40();
+	head("1fw8dmf", ($$anchor) => {
+		deferred_template_effect(($0) => {
+			$document.title = `${$0 ?? ""} Bookings — Accounts Portal`;
+		}, [() => get(serviceType).toUpperCase()]);
+	});
+	var div_1 = child(div);
+	var div_2 = child(div_1);
+	var h1 = child(div_2);
+	var text$1 = child(h1);
+	reset(h1);
+	next(2);
+	reset(div_2);
+	var div_3 = sibling(div_2, 2);
+	var node = child(div_3);
+	Button(node, {
+		variant: "outline",
+		class: "h-8.5 rounded-xl cursor-pointer flex items-center gap-1.5 text-xs font-semibold",
+		onclick: exportToCSV$1,
+		get disabled() {
+			return get(exportingCSV);
+		},
+		children: ($$anchor, $$slotProps) => {
+			var fragment = root();
+			var node_1 = first_child(fragment);
+			{
+				let $0 = user_derived(() => ["h-3.5 w-3.5", get(exportingCSV) ? "animate-spin" : ""].join(" "));
+				Download(node_1, { get class() {
+					return get($0);
+				} });
+			}
+			var span = sibling(node_1, 2);
+			var text_1 = child(span, true);
+			reset(span);
+			template_effect(() => set_text(text_1, get(exportingCSV) ? "Exporting..." : "CSV Export"));
+			append($$anchor, fragment);
+		},
+		$$slots: { default: true }
+	});
+	var node_2 = sibling(node, 2);
+	Button(node_2, {
+		variant: "outline",
+		class: "h-8.5 rounded-xl cursor-pointer flex items-center gap-1.5 text-xs font-semibold",
+		onclick: handlePrint,
+		children: ($$anchor, $$slotProps) => {
+			var fragment_1 = root_1();
+			Printer(first_child(fragment_1), { class: "h-3.5 w-3.5" });
+			next(2);
+			append($$anchor, fragment_1);
+		},
+		$$slots: { default: true }
+	});
+	Button(sibling(node_2, 2), {
+		variant: "outline",
+		class: "h-8.5 rounded-xl cursor-pointer flex items-center gap-1.5 text-xs font-semibold",
+		onclick: fetchBookings,
+		children: ($$anchor, $$slotProps) => {
+			var fragment_2 = root_2();
+			Refresh_cw(first_child(fragment_2), { class: "h-3.5 w-3.5" });
+			next(2);
+			append($$anchor, fragment_2);
+		},
+		$$slots: { default: true }
+	});
+	reset(div_3);
+	reset(div_1);
+	var div_4 = sibling(div_1, 2);
+	var div_5 = child(div_4);
+	var div_6 = child(div_5);
+	var node_6 = child(div_6);
+	Search(node_6, { class: "absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" });
+	var input = sibling(node_6, 2);
+	remove_input_defaults(input);
+	reset(div_6);
+	var select = sibling(div_6, 2);
+	var option = child(select);
+	option.value = option.__value = "all";
+	var option_1 = sibling(option);
+	option_1.value = option_1.__value = "paid";
+	var option_2 = sibling(option_1);
+	option_2.value = option_2.__value = "pending";
+	var option_3 = sibling(option_2);
+	option_3.value = option_3.__value = "failed";
+	reset(select);
+	var div_7 = sibling(select, 2);
+	var node_7 = child(div_7);
+	Button(node_7, {
+		variant: "outline",
+		class: "h-9 w-full md:w-auto rounded-xl flex items-center gap-1.5 text-xs font-semibold",
+		onclick: () => set(showColumnChooser, !get(showColumnChooser)),
+		children: ($$anchor, $$slotProps) => {
+			var fragment_3 = root_3();
+			Sliders_horizontal(first_child(fragment_3), { class: "h-4 w-4" });
+			next(2);
+			append($$anchor, fragment_3);
+		},
+		$$slots: { default: true }
+	});
+	var node_9 = sibling(node_7, 2);
+	var consequent = ($$anchor) => {
+		var div_8 = root_5();
+		each(sibling(child(div_8), 2), 17, () => Object.keys(columns), index, ($$anchor, key) => {
+			var label = root_4();
+			var input_1 = child(label);
+			remove_input_defaults(input_1);
+			var span_1 = sibling(input_1, 2);
+			var text_2 = child(span_1, true);
+			reset(span_1);
+			reset(label);
+			template_effect(() => {
+				set_checked(input_1, columns[get(key)]?.visible);
+				set_text(text_2, columns[get(key)]?.label);
+			});
+			delegated("click", input_1, () => toggleColumn(get(key)));
+			append($$anchor, label);
+		});
+		reset(div_8);
+		append($$anchor, div_8);
+	};
+	if_block(node_9, ($$render) => {
+		if (get(showColumnChooser)) $$render(consequent);
+	});
+	reset(div_7);
+	reset(div_5);
+	var div_9 = sibling(div_5, 2);
+	var div_10 = child(div_9);
+	var input_2 = sibling(child(div_10), 2);
+	remove_input_defaults(input_2);
+	reset(div_10);
+	var div_11 = sibling(div_10, 2);
+	var input_3 = sibling(child(div_11), 2);
+	remove_input_defaults(input_3);
+	reset(div_11);
+	var div_12 = sibling(div_11, 2);
+	Button(child(div_12), {
+		variant: "outline",
+		class: "w-full h-9 rounded-xl text-xs font-semibold",
+		onclick: () => {
+			set(startDate, "");
+			set(endDate, "");
+			fetchBookings();
+		},
+		children: ($$anchor, $$slotProps) => {
+			next();
+			append($$anchor, text("Clear Dates"));
+		},
+		$$slots: { default: true }
+	});
+	reset(div_12);
+	reset(div_9);
+	reset(div_4);
+	var node_12 = sibling(div_4, 2);
+	var consequent_1 = ($$anchor) => {
+		var div_13 = root_6();
+		Refresh_cw(child(div_13), { class: "h-8 w-8 text-primary animate-spin" });
+		reset(div_13);
+		append($$anchor, div_13);
+	};
+	var consequent_35 = ($$anchor) => {
+		var fragment_4 = root_38();
+		var div_14 = first_child(fragment_4);
+		var table = child(div_14);
+		var thead = child(table);
+		var tr = child(thead);
+		var node_14 = child(tr);
+		var consequent_3 = ($$anchor) => {
+			var th = root_7();
+			var node_15 = sibling(child(th));
+			var consequent_2 = ($$anchor) => {
+				var text_4 = text();
+				template_effect(() => set_text(text_4, get(sortDesc) ? "↓" : "↑"));
+				append($$anchor, text_4);
+			};
+			if_block(node_15, ($$render) => {
+				if (get(sortBy) === "id") $$render(consequent_2);
+			});
+			reset(th);
+			delegated("click", th, () => handleSort("id"));
+			append($$anchor, th);
+		};
+		if_block(node_14, ($$render) => {
+			if (columns.id?.visible) $$render(consequent_3);
+		});
+		var node_16 = sibling(node_14);
+		var consequent_5 = ($$anchor) => {
+			var th_1 = root_8();
+			var node_17 = sibling(child(th_1));
+			var consequent_4 = ($$anchor) => {
+				var text_5 = text();
+				template_effect(() => set_text(text_5, get(sortDesc) ? "↓" : "↑"));
+				append($$anchor, text_5);
+			};
+			if_block(node_17, ($$render) => {
+				if (get(sortBy) === "headName") $$render(consequent_4);
+			});
+			reset(th_1);
+			delegated("click", th_1, () => handleSort("headName"));
+			append($$anchor, th_1);
+		};
+		if_block(node_16, ($$render) => {
+			if (columns.headName?.visible) $$render(consequent_5);
+		});
+		var node_18 = sibling(node_16);
+		var consequent_7 = ($$anchor) => {
+			var th_2 = root_9();
+			var node_19 = sibling(child(th_2));
+			var consequent_6 = ($$anchor) => {
+				var text_6 = text();
+				template_effect(() => set_text(text_6, get(sortDesc) ? "↓" : "↑"));
+				append($$anchor, text_6);
+			};
+			if_block(node_19, ($$render) => {
+				if (get(sortBy) === "salesmanName") $$render(consequent_6);
+			});
+			reset(th_2);
+			delegated("click", th_2, () => handleSort("salesmanName"));
+			append($$anchor, th_2);
+		};
+		if_block(node_18, ($$render) => {
+			if (columns.salesmanName?.visible) $$render(consequent_7);
+		});
+		var node_20 = sibling(node_18);
+		var consequent_8 = ($$anchor) => {
+			append($$anchor, root_10());
+		};
+		if_block(node_20, ($$render) => {
+			if (columns.mainDetails?.visible) $$render(consequent_8);
+		});
+		var node_21 = sibling(node_20);
+		var consequent_10 = ($$anchor) => {
+			var th_4 = root_11();
+			var node_22 = sibling(child(th_4));
+			var consequent_9 = ($$anchor) => {
+				var text_7 = text();
+				template_effect(() => set_text(text_7, get(sortDesc) ? "↓" : "↑"));
+				append($$anchor, text_7);
+			};
+			if_block(node_22, ($$render) => {
+				if (get(sortBy) === "payableAmount") $$render(consequent_9);
+			});
+			reset(th_4);
+			delegated("click", th_4, () => handleSort("payableAmount"));
+			append($$anchor, th_4);
+		};
+		if_block(node_21, ($$render) => {
+			if (columns.payableAmount?.visible) $$render(consequent_10);
+		});
+		var node_23 = sibling(node_21);
+		var consequent_12 = ($$anchor) => {
+			var th_5 = root_12();
+			var node_24 = sibling(child(th_5));
+			var consequent_11 = ($$anchor) => {
+				var text_8 = text();
+				template_effect(() => set_text(text_8, get(sortDesc) ? "↓" : "↑"));
+				append($$anchor, text_8);
+			};
+			if_block(node_24, ($$render) => {
+				if (get(sortBy) === "processingStatus") $$render(consequent_11);
+			});
+			reset(th_5);
+			delegated("click", th_5, () => handleSort("processingStatus"));
+			append($$anchor, th_5);
+		};
+		if_block(node_23, ($$render) => {
+			if (columns.processingStatus?.visible) $$render(consequent_12);
+		});
+		var node_25 = sibling(node_23);
+		var consequent_14 = ($$anchor) => {
+			var th_6 = root_13();
+			var node_26 = sibling(child(th_6));
+			var consequent_13 = ($$anchor) => {
+				var text_9 = text();
+				template_effect(() => set_text(text_9, get(sortDesc) ? "↓" : "↑"));
+				append($$anchor, text_9);
+			};
+			if_block(node_26, ($$render) => {
+				if (get(sortBy) === "isDealClosed") $$render(consequent_13);
+			});
+			reset(th_6);
+			delegated("click", th_6, () => handleSort("isDealClosed"));
+			append($$anchor, th_6);
+		};
+		if_block(node_25, ($$render) => {
+			if (columns.isDealClosed?.visible) $$render(consequent_14);
+		});
+		var node_27 = sibling(node_25);
+		var consequent_16 = ($$anchor) => {
+			var th_7 = root_14();
+			var node_28 = sibling(child(th_7));
+			var consequent_15 = ($$anchor) => {
+				var text_10 = text();
+				template_effect(() => set_text(text_10, get(sortDesc) ? "↓" : "↑"));
+				append($$anchor, text_10);
+			};
+			if_block(node_28, ($$render) => {
+				if (get(sortBy) === "createdAt") $$render(consequent_15);
+			});
+			reset(th_7);
+			delegated("click", th_7, () => handleSort("createdAt"));
+			append($$anchor, th_7);
+		};
+		if_block(node_27, ($$render) => {
+			if (columns.createdAt?.visible) $$render(consequent_16);
+		});
+		next();
+		reset(tr);
+		reset(thead);
+		var tbody = sibling(thead);
+		each(tbody, 21, () => get(dataList).items, index, ($$anchor, row) => {
+			var tr_1 = root_35();
+			var node_29 = child(tr_1);
+			var consequent_17 = ($$anchor) => {
+				var td = root_15();
+				var text_11 = child(td, true);
+				reset(td);
+				template_effect(() => set_text(text_11, get(row).documentNumber || `#${get(row).id}`));
+				append($$anchor, td);
+			};
+			if_block(node_29, ($$render) => {
+				if (columns.id?.visible) $$render(consequent_17);
+			});
+			var node_30 = sibling(node_29);
+			var consequent_18 = ($$anchor) => {
+				var td_1 = root_16();
+				var text_12 = child(td_1, true);
+				reset(td_1);
+				template_effect(() => set_text(text_12, get(row).headName || "—"));
+				append($$anchor, td_1);
+			};
+			if_block(node_30, ($$render) => {
+				if (columns.headName?.visible) $$render(consequent_18);
+			});
+			var node_31 = sibling(node_30);
+			var consequent_19 = ($$anchor) => {
+				var td_2 = root_17();
+				var text_13 = child(td_2, true);
+				reset(td_2);
+				template_effect(() => set_text(text_13, get(row).salesmanName || "—"));
+				append($$anchor, td_2);
+			};
+			if_block(node_31, ($$render) => {
+				if (columns.salesmanName?.visible) $$render(consequent_19);
+			});
+			var node_32 = sibling(node_31);
+			var consequent_29 = ($$anchor) => {
+				var td_3 = root_28();
+				var node_33 = child(td_3);
+				var consequent_21 = ($$anchor) => {
+					var fragment_12 = root_19();
+					var node_34 = first_child(fragment_12);
+					var consequent_20 = ($$anchor) => {
+						var span_2 = root_18();
+						var strong = sibling(child(span_2));
+						var text_14 = child(strong, true);
+						reset(strong);
+						reset(span_2);
+						template_effect(() => set_text(text_14, get(row).passengerNames));
+						append($$anchor, span_2);
+					};
+					if_block(node_34, ($$render) => {
+						if (get(row).passengerNames) $$render(consequent_20);
+					});
+					var strong_1 = sibling(node_34, 2);
+					var text_15 = child(strong_1);
+					reset(strong_1);
+					var text_16 = sibling(strong_1);
+					template_effect(() => {
+						set_text(text_15, `${get(row).fromLocation ?? ""} → ${get(row).toLocation ?? ""}`);
+						set_text(text_16, ` (${get(row).passengerCount ?? ""} ${get(row).passengerCount === 1 ? "passenger" : "passengers"})`);
+					});
+					append($$anchor, fragment_12);
+				};
+				var consequent_22 = ($$anchor) => {
+					var fragment_13 = root_20();
+					var strong_2 = sibling(first_child(fragment_13));
+					var text_17 = child(strong_2, true);
+					reset(strong_2);
+					var text_18 = sibling(strong_2);
+					template_effect(() => {
+						set_text(text_17, get(row).guestName);
+						set_text(text_18, ` • ${get(row).country ?? ""} (${get(row).days ?? ""} days)`);
+					});
+					append($$anchor, fragment_13);
+				};
+				var consequent_24 = ($$anchor) => {
+					var fragment_14 = root_22();
+					var node_35 = first_child(fragment_14);
+					var consequent_23 = ($$anchor) => {
+						var span_3 = root_21();
+						var strong_3 = sibling(child(span_3));
+						var text_19 = child(strong_3, true);
+						reset(strong_3);
+						reset(span_3);
+						template_effect(() => set_text(text_19, get(row).applicantNames));
+						append($$anchor, span_3);
+					};
+					if_block(node_35, ($$render) => {
+						if (get(row).applicantNames) $$render(consequent_23);
+					});
+					var strong_4 = sibling(node_35, 2);
+					var text_20 = child(strong_4, true);
+					reset(strong_4);
+					var text_21 = sibling(strong_4);
+					template_effect(() => {
+						set_text(text_20, get(row).visaPackName);
+						set_text(text_21, ` (${get(row).applicantCount ?? ""} ${get(row).applicantCount === 1 ? "applicant" : "applicants"})`);
+					});
+					append($$anchor, fragment_14);
+				};
+				var consequent_25 = ($$anchor) => {
+					var fragment_15 = root_23();
+					var strong_5 = sibling(first_child(fragment_15));
+					var text_22 = child(strong_5, true);
+					reset(strong_5);
+					var text_23 = sibling(strong_5);
+					template_effect(() => {
+						set_text(text_22, get(row).name);
+						set_text(text_23, ` • ${get(row).visaType ?? ""}`);
+					});
+					append($$anchor, fragment_15);
+				};
+				var consequent_26 = ($$anchor) => {
+					var fragment_16 = root_24();
+					var strong_6 = sibling(first_child(fragment_16));
+					var text_24 = child(strong_6, true);
+					reset(strong_6);
+					var text_25 = sibling(strong_6);
+					template_effect(() => {
+						set_text(text_24, get(row).passengerName);
+						set_text(text_25, ` (${get(row).days ?? ""} days in ${get(row).country ?? ""})`);
+					});
+					append($$anchor, fragment_16);
+				};
+				var consequent_28 = ($$anchor) => {
+					var fragment_17 = root_26();
+					var node_36 = first_child(fragment_17);
+					var consequent_27 = ($$anchor) => {
+						var span_4 = root_25();
+						var strong_7 = sibling(child(span_4));
+						var text_26 = child(strong_7, true);
+						reset(strong_7);
+						reset(span_4);
+						template_effect(() => set_text(text_26, get(row).name));
+						append($$anchor, span_4);
+					};
+					if_block(node_36, ($$render) => {
+						if (get(row).name) $$render(consequent_27);
+					});
+					var strong_8 = sibling(node_36, 2);
+					var text_27 = child(strong_8);
+					reset(strong_8);
+					template_effect(() => set_text(text_27, `${get(row).pickup ?? ""} → ${get(row).drop ?? ""}`));
+					append($$anchor, fragment_17);
+				};
+				var alternate = ($$anchor) => {
+					var fragment_18 = root_27();
+					var strong_9 = sibling(first_child(fragment_18));
+					var text_28 = child(strong_9, true);
+					reset(strong_9);
+					var text_29 = sibling(strong_9);
+					template_effect(() => {
+						set_text(text_28, get(row).serviceName);
+						set_text(text_29, ` (${get(row).name ?? ""})`);
+					});
+					append($$anchor, fragment_18);
+				};
+				if_block(node_33, ($$render) => {
+					if (get(serviceType) === "flights") $$render(consequent_21);
+					else if (get(serviceType) === "hotels") $$render(consequent_22, 1);
+					else if (get(serviceType) === "visa") $$render(consequent_24, 2);
+					else if (get(serviceType) === "vfs") $$render(consequent_25, 3);
+					else if (get(serviceType) === "holiday") $$render(consequent_26, 4);
+					else if (get(serviceType) === "transportation") $$render(consequent_28, 5);
+					else $$render(alternate, -1);
+				});
+				reset(td_3);
+				append($$anchor, td_3);
+			};
+			if_block(node_32, ($$render) => {
+				if (columns.mainDetails?.visible) $$render(consequent_29);
+			});
+			var node_37 = sibling(node_32);
+			var consequent_30 = ($$anchor) => {
+				var td_4 = root_29();
+				MoneyDisplay(child(td_4), { get amount() {
+					return get(row).payableAmount;
+				} });
+				reset(td_4);
+				append($$anchor, td_4);
+			};
+			if_block(node_37, ($$render) => {
+				if (columns.payableAmount?.visible) $$render(consequent_30);
+			});
+			var node_39 = sibling(node_37);
+			var consequent_31 = ($$anchor) => {
+				var td_5 = root_30();
+				var text_30 = child(td_5, true);
+				reset(td_5);
+				template_effect(() => set_text(text_30, get(row).processingStatus || "—"));
+				append($$anchor, td_5);
+			};
+			if_block(node_39, ($$render) => {
+				if (columns.processingStatus?.visible) $$render(consequent_31);
+			});
+			var node_40 = sibling(node_39);
+			var consequent_33 = ($$anchor) => {
+				var td_6 = root_33();
+				var node_41 = child(td_6);
+				var consequent_32 = ($$anchor) => {
+					append($$anchor, root_31());
+				};
+				var alternate_1 = ($$anchor) => {
+					append($$anchor, root_32());
+				};
+				if_block(node_41, ($$render) => {
+					if (get(row).isDealClosed) $$render(consequent_32);
+					else $$render(alternate_1, -1);
+				});
+				reset(td_6);
+				append($$anchor, td_6);
+			};
+			if_block(node_40, ($$render) => {
+				if (columns.isDealClosed?.visible) $$render(consequent_33);
+			});
+			var node_42 = sibling(node_40);
+			var consequent_34 = ($$anchor) => {
+				var td_7 = root_34();
+				DateDisplay(child(td_7), { get value() {
+					return get(row).createdAt;
+				} });
+				reset(td_7);
+				append($$anchor, td_7);
+			};
+			if_block(node_42, ($$render) => {
+				if (columns.createdAt?.visible) $$render(consequent_34);
+			});
+			var td_8 = sibling(node_42);
+			var a_1 = child(td_8);
+			Eye(child(a_1), { class: "h-4 w-4" });
+			reset(a_1);
+			reset(td_8);
+			reset(tr_1);
+			template_effect(() => set_attribute(a_1, "href", `/sales/bookings/${get(serviceType) ?? ""}/${get(row).id ?? ""}`));
+			append($$anchor, tr_1);
+		});
+		reset(tbody);
+		reset(table);
+		reset(div_14);
+		var div_15 = sibling(div_14, 2);
+		var span_7 = child(div_15);
+		var text_31 = child(span_7);
+		reset(span_7);
+		var div_16 = sibling(span_7, 2);
+		var div_17 = child(div_16);
+		var select_1 = sibling(child(div_17), 2);
+		var option_4 = child(select_1);
+		option_4.value = option_4.__value = 10;
+		var option_5 = sibling(option_4);
+		option_5.value = option_5.__value = 25;
+		var option_6 = sibling(option_5);
+		option_6.value = option_6.__value = 50;
+		var option_7 = sibling(option_6);
+		option_7.value = option_7.__value = 100;
+		var option_8 = sibling(option_7);
+		option_8.value = option_8.__value = 200;
+		var option_9 = sibling(option_8);
+		option_9.value = option_9.__value = 500;
+		var option_10 = sibling(option_9);
+		option_10.value = option_10.__value = 1e3;
+		reset(select_1);
+		var select_1_value;
+		init_select(select_1);
+		reset(div_17);
+		var div_18 = sibling(div_17, 2);
+		var node_45 = child(div_18);
+		{
+			let $0 = user_derived(() => get(currentPage) <= 1);
+			Button(node_45, {
+				variant: "outline",
+				class: "h-8.5 cursor-pointer rounded-xl px-2.5",
+				get disabled() {
+					return get($0);
+				},
+				onclick: () => {
+					update(currentPage, -1);
+					fetchBookings();
+				},
+				children: ($$anchor, $$slotProps) => {
+					var fragment_19 = root_36();
+					Chevron_left(first_child(fragment_19), { class: "h-3 w-3 mr-1" });
+					next();
+					append($$anchor, fragment_19);
+				},
+				$$slots: { default: true }
+			});
+		}
+		var node_47 = sibling(node_45, 2);
+		{
+			let $0 = user_derived(() => get(currentPage) >= get(dataList).totalPages);
+			Button(node_47, {
+				variant: "outline",
+				class: "h-8.5 cursor-pointer rounded-xl px-2.5",
+				get disabled() {
+					return get($0);
+				},
+				onclick: () => {
+					update(currentPage);
+					fetchBookings();
+				},
+				children: ($$anchor, $$slotProps) => {
+					next();
+					var fragment_20 = root_37();
+					Chevron_right(sibling(first_child(fragment_20)), { class: "h-3 w-3 ml-1" });
+					append($$anchor, fragment_20);
+				},
+				$$slots: { default: true }
+			});
+		}
+		reset(div_18);
+		reset(div_16);
+		reset(div_15);
+		template_effect(() => {
+			set_text(text_31, `Page ${get(dataList).page ?? ""} of ${get(dataList).totalPages ?? ""} (${get(dataList).totalCount ?? ""} items)`);
+			if (select_1_value !== (select_1_value = get(pageSize))) select_1.value = (select_1.__value = get(pageSize)) ?? "", select_option(select_1, get(pageSize));
+		});
+		delegated("change", select_1, (e) => {
+			set(pageSize, Number(e.target.value), true);
+			set(currentPage, 1);
+			fetchBookings();
+		});
+		append($$anchor, fragment_4);
+	};
+	var alternate_2 = ($$anchor) => {
+		var div_19 = root_39();
+		var text_32 = child(div_19);
+		reset(div_19);
+		template_effect(() => set_text(text_32, `No ${get(serviceType) ?? ""} bookings registered matching current filters.`));
+		append($$anchor, div_19);
+	};
+	if_block(node_12, ($$render) => {
+		if (get(loading)) $$render(consequent_1);
+		else if (get(dataList) && get(dataList).items && get(dataList).items.length > 0) $$render(consequent_35, 1);
+		else $$render(alternate_2, -1);
+	});
+	reset(div);
+	template_effect(() => {
+		set_text(text$1, `${get(serviceType) ?? ""} Bookings`);
+		set_value(input, get(searchVal));
+	});
+	delegated("input", input, (e) => handleSearchInput(e.target.value));
+	delegated("change", select, fetchBookings);
+	bind_select_value(select, () => get(statusFilter), ($$value) => set(statusFilter, $$value));
+	delegated("change", input_2, () => {
+		set(currentPage, 1);
+		fetchBookings();
+	});
+	bind_value(input_2, () => get(startDate), ($$value) => set(startDate, $$value));
+	delegated("change", input_3, () => {
+		set(currentPage, 1);
+		fetchBookings();
+	});
+	bind_value(input_3, () => get(endDate), ($$value) => set(endDate, $$value));
+	append($$anchor, div);
+	pop();
+	$$cleanup();
+}
+delegate([
+	"input",
+	"change",
+	"click"
+]);
+//#endregion
+export { _page as component };

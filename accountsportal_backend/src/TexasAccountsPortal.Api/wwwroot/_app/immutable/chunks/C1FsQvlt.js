@@ -1,0 +1,43 @@
+import { t as apiFetch } from "./D0ru13I8.js";
+//#region src/features/staffs/api/staffs-api.ts
+async function fetchAccountsStaff() {
+	return await apiFetch("api/staffs/accounts") || [];
+}
+async function fetchSalesStaff() {
+	return await apiFetch("api/staffs/sales") || [];
+}
+async function fetchOperationalStaff() {
+	return await apiFetch("api/staffs/operational") || [];
+}
+async function createAccountsStaff(data) {
+	return await apiFetch("api/staffs/accounts", {
+		method: "POST",
+		body: JSON.stringify(data)
+	});
+}
+async function createSalesStaff(data) {
+	return await apiFetch("api/staffs/sales", {
+		method: "POST",
+		body: JSON.stringify(data)
+	});
+}
+async function createOperationalStaff(data) {
+	return await apiFetch("api/staffs/operational", {
+		method: "POST",
+		body: JSON.stringify(data)
+	});
+}
+async function updateOperationalPermissions(data) {
+	return await apiFetch("api/staffs/operational/permissions", {
+		method: "PUT",
+		body: JSON.stringify(data)
+	});
+}
+async function updateStaffEmail(portal, id, newEmail) {
+	return await apiFetch(`api/staffs/${portal}/${id}/email`, {
+		method: "PUT",
+		body: JSON.stringify({ newEmail })
+	});
+}
+//#endregion
+export { fetchOperationalStaff as a, updateStaffEmail as c, fetchAccountsStaff as i, createOperationalStaff as n, fetchSalesStaff as o, createSalesStaff as r, updateOperationalPermissions as s, createAccountsStaff as t };

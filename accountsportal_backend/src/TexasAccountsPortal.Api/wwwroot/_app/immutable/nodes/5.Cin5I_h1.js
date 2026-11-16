@@ -1,0 +1,23 @@
+import { B as append, Ct as setup_stores, H as from_html, Mt as push, jt as pop, l as init, r as onMount, wt as store_get } from "../chunks/BRNvcyYY.js";
+import { t as goto } from "../chunks/D5JuL223.js";
+import "../chunks/DhaYE-8x.js";
+import { a as isAuthenticated } from "../chunks/CLwTjc5f.js";
+import "../chunks/BFZVyN5n.js";
+import "../chunks/D2xySE74.js";
+//#region src/routes/+page.svelte
+var root = from_html(`<div class="h-screen w-screen flex items-center justify-center"><div class="animate-pulse text-sm text-muted-foreground">Redirecting...</div></div>`);
+function _page($$anchor, $$props) {
+	push($$props, false);
+	const $isAuthenticated = () => store_get(isAuthenticated, "$isAuthenticated", $$stores);
+	const [$$stores, $$cleanup] = setup_stores();
+	onMount(() => {
+		if ($isAuthenticated()) goto("/dashboard");
+		else goto("/login");
+	});
+	init();
+	append($$anchor, root());
+	pop();
+	$$cleanup();
+}
+//#endregion
+export { _page as component };

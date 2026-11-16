@@ -1,0 +1,28 @@
+import { At as pop, E as head, It as next, Lt as reset, V as from_html, jt as push, l as init, lt as $document, r as onMount, rt as effect, ut as child, z as append } from "../chunks/D1I-S_GP.js";
+import { t as goto } from "../chunks/B6vfk650.js";
+import "../chunks/DhaYE-8x.js";
+import "../chunks/Cr7lFLqy.js";
+import { t as Loader_circle } from "../chunks/C4L5vk6s2.js";
+import "../chunks/DWcEvSoH.js";
+//#region src/routes/(app)/banks/new/+page.svelte
+var root = from_html(`<div class="flex flex-col items-center justify-center py-24 gap-3 text-xs text-muted-foreground"><!> <span>Redirecting to bank account registration...</span></div>`);
+function _page($$anchor, $$props) {
+	push($$props, false);
+	onMount(() => {
+		goto("/banks?new=true");
+	});
+	init();
+	var div = root();
+	head("1mvnz70", ($$anchor) => {
+		effect(() => {
+			$document.title = "Register Bank Account — Accounts Portal";
+		});
+	});
+	Loader_circle(child(div), { class: "h-6 w-6 animate-spin text-primary" });
+	next(2);
+	reset(div);
+	append($$anchor, div);
+	pop();
+}
+//#endregion
+export { _page as component };

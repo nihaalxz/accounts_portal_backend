@@ -1,0 +1,32 @@
+import { B as append, Bt as reset, D as head, Et as store_get, H as from_html, Nt as pop, Pt as push, Tt as setup_stores, dt as $document, it as effect, l as init, pt as child, r as onMount, zt as next } from "../chunks/dXkmWTgM.js";
+import { t as goto } from "../chunks/BIrsf9r0.js";
+import "../chunks/DhaYE-8x.js";
+import "../chunks/DZfWAsjW.js";
+import { t as Loader_circle } from "../chunks/BMOA0yrB2.js";
+import { t as page } from "../chunks/DOUZ5J01.js";
+import "../chunks/-KyD02dH2.js";
+//#region src/routes/(app)/banks/[id]/edit/+page.svelte
+var root = from_html(`<div class="flex flex-col items-center justify-center py-24 gap-3 text-xs text-muted-foreground"><!> <span>Redirecting to bank account editing...</span></div>`);
+function _page($$anchor, $$props) {
+	push($$props, false);
+	const $page = () => store_get(page, "$page", $$stores);
+	const [$$stores, $$cleanup] = setup_stores();
+	onMount(() => {
+		goto(`/banks?edit=${$page().params.id}`);
+	});
+	init();
+	var div = root();
+	head("9tz3t6", ($$anchor) => {
+		effect(() => {
+			$document.title = "Edit Bank Account — Accounts Portal";
+		});
+	});
+	Loader_circle(child(div), { class: "h-6 w-6 animate-spin text-primary" });
+	next(2);
+	reset(div);
+	append($$anchor, div);
+	pop();
+	$$cleanup();
+}
+//#endregion
+export { _page as component };
