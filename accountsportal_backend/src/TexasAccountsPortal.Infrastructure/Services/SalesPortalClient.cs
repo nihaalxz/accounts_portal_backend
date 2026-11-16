@@ -306,7 +306,10 @@ namespace TexasAccountsPortal.Infrastructure.Services
 
         public async Task<PagedResponse<HeadSummaryResponse>> GetHeadsAsync(int page, int pageSize, string? search, string? type, long? salesmanId, CancellationToken ct = default)
         {
-            var url = BuildUrl("api/internal/operations/heads", page, pageSize, search);
+            var path = (salesmanId.HasValue && salesmanId.Value > 0)
+                ? $"api/internal/operations/salesmen/{salesmanId.Value}/heads"
+                : "api/internal/operations/heads";
+            var url = BuildUrl(path, page, pageSize, search);
             if (!string.IsNullOrWhiteSpace(type))
             {
                 url += $"&type={System.Uri.EscapeDataString(type)}";
@@ -428,7 +431,10 @@ namespace TexasAccountsPortal.Infrastructure.Services
 
         public async Task<PagedResponse<HeadSummaryResponse>> GetSalesmanHeadsAsync(long salesmanId, string? search, int page, int pageSize, CancellationToken ct = default)
         {
-            var url = BuildUrl("api/internal/operations/heads", page, pageSize, search) + (salesmanId > 0 ? $"&salesmanId={salesmanId}" : "");
+            var path = salesmanId > 0
+                ? $"api/internal/operations/salesmen/{salesmanId}/heads"
+                : "api/internal/operations/heads";
+            var url = BuildUrl(path, page, pageSize, search) + (salesmanId > 0 ? $"&salesmanId={salesmanId}" : "");
             return await GetAsync<PagedResponse<HeadSummaryResponse>>(url, ct);
         }
 
