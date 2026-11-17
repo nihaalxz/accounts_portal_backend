@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TexasAccountsPortal.Application.Interfaces;
 using TexasAccountsPortal.Contracts.SalesEntries;
+using TexasAccountsPortal.Contracts.Reporting;
 
 namespace TexasAccountsPortal.IntegrationTests.Fakes
 {
