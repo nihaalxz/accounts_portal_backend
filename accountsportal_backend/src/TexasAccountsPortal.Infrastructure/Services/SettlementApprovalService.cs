@@ -235,14 +235,19 @@ namespace TexasAccountsPortal.Infrastructure.Services
 
             if (!string.IsNullOrWhiteSpace(response.ServiceType) && !string.IsNullOrWhiteSpace(response.ExternalReference))
             {
-                try
+                var sType = response.ServiceType;
+                var extRef = response.ExternalReference;
+                _ = Task.Run(async () =>
                 {
-                    await _salesPortalClient.NotifySupplierPaymentApprovedAsync(response.ServiceType, response.ExternalReference, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[SettlementApprovalService] Error notifying Sales Portal of approved supplier payment {paymentId}: {ex.Message}");
-                }
+                    try
+                    {
+                        await _salesPortalClient.NotifySupplierPaymentApprovedAsync(sType, extRef, CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[SettlementApprovalService] Error notifying Sales Portal of approved supplier payment {paymentId}: {ex.Message}");
+                    }
+                });
             }
 
             return response;
