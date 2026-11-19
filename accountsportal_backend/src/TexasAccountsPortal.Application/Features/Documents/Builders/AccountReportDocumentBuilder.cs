@@ -299,8 +299,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             {
                 new() { Header = "DATE", RelativeWidth = 1.1f, Alignment = ColumnAlignment.Center },
                 new() { Header = "DOC NO.", RelativeWidth = 1.2f, IsMonoFont = true },
-                new() { Header = "TYPE", RelativeWidth = 1.0f, Alignment = ColumnAlignment.Center, IsBold = true },
                 new() { Header = "DESCRIPTION / NARRATIVE", RelativeWidth = 2.8f, IsBold = true },
+                new() { Header = "TYPE", RelativeWidth = 1.0f, Alignment = ColumnAlignment.Center, IsBold = true },
                 new() { Header = "DEBIT (+)", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#059669" },
                 new() { Header = "CREDIT (-)", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#dc2626" },
                 new() { Header = "RUNNING BAL", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#1b2559" }
@@ -312,8 +312,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             {
                 start.HasValue ? start.Value.ToString("dd/MM/yyyy") : "-",
                 "-",
-                "OPENING",
                 "OPENING BALANCE - Balance Brought Forward",
+                "OPENING",
                 "-",
                 "-",
                 runningBal.ToString("0.000")
@@ -348,8 +348,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
                 {
                     t.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
                     mt?.DocumentNumber ?? t.DocumentNumber ?? $"#{t.Id}",
-                    txType,
                     narration,
+                    txType,
                     debit > 0 ? debit.ToString("0.000") : "-",
                     credit > 0 ? credit.ToString("0.000") : "-",
                     runningBal.ToString("0.000")
@@ -360,8 +360,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             {
                 "TOTALS",
                 $"{periodTxs.Count} Entries",
-                "-",
                 "Total Movements",
+                "-",
                 periodDebits.ToString("0.000"),
                 periodCredits.ToString("0.000"),
                 runningBal.ToString("0.000")
@@ -444,8 +444,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             {
                 new() { Header = "DATE", RelativeWidth = 1.1f, Alignment = ColumnAlignment.Center },
                 new() { Header = "DOC NO.", RelativeWidth = 1.2f, IsMonoFont = true },
-                new() { Header = "TYPE", RelativeWidth = 1.0f, Alignment = ColumnAlignment.Center, IsBold = true },
                 new() { Header = "DESCRIPTION / NARRATIVE", RelativeWidth = 2.8f, IsBold = true },
+                new() { Header = "TYPE", RelativeWidth = 1.0f, Alignment = ColumnAlignment.Center, IsBold = true },
                 new() { Header = "DEBIT (+)", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#059669" },
                 new() { Header = "CREDIT (-)", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#dc2626" },
                 new() { Header = "RUNNING BAL", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#1b2559" }
@@ -457,8 +457,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             {
                 start.HasValue ? start.Value.ToString("dd/MM/yyyy") : "-",
                 "-",
-                "OPENING",
                 "OPENING BALANCE - Balance Brought Forward",
+                "OPENING",
                 "-",
                 "-",
                 runningBal.ToString("0.000")
@@ -493,8 +493,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
                 {
                     t.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
                     mt?.DocumentNumber ?? t.DocumentNumber ?? $"#{t.Id}",
-                    txType,
                     narration,
+                    txType,
                     debit > 0 ? debit.ToString("0.000") : "-",
                     credit > 0 ? credit.ToString("0.000") : "-",
                     runningBal.ToString("0.000")
@@ -505,8 +505,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             {
                 "TOTALS",
                 $"{periodTxs.Count} Entries",
-                "-",
                 "Total Movements",
+                "-",
                 periodDebits.ToString("0.000"),
                 periodCredits.ToString("0.000"),
                 runningBal.ToString("0.000")

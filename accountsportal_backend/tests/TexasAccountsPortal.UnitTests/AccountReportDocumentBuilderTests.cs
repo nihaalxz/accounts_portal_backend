@@ -188,21 +188,22 @@ namespace TexasAccountsPortal.UnitTests
 
             Assert.NotNull(model);
             Assert.Equal(7, model.Table.Columns.Count);
-            Assert.Equal("TYPE", model.Table.Columns[2].Header);
+            Assert.Equal("DESCRIPTION / NARRATIVE", model.Table.Columns[2].Header);
+            Assert.Equal("TYPE", model.Table.Columns[3].Header);
 
             // Row 0 is Opening Balance
-            Assert.Equal("OPENING", model.Table.Rows[0][2]);
+            Assert.Equal("OPENING", model.Table.Rows[0][3]);
 
             // Data rows
-            Assert.Equal("RECEIPT", model.Table.Rows[1][2]);
-            Assert.Equal("DEPOSIT", model.Table.Rows[2][2]);
-            Assert.Equal("WITHDRAWAL", model.Table.Rows[3][2]);
-            Assert.Equal("PAYMENT", model.Table.Rows[4][2]);
-            Assert.Equal("EXPENSE", model.Table.Rows[5][2]);
+            Assert.Equal("RECEIPT", model.Table.Rows[1][3]);
+            Assert.Equal("DEPOSIT", model.Table.Rows[2][3]);
+            Assert.Equal("WITHDRAWAL", model.Table.Rows[3][3]);
+            Assert.Equal("PAYMENT", model.Table.Rows[4][3]);
+            Assert.Equal("EXPENSE", model.Table.Rows[5][3]);
 
             // Total row
             Assert.Equal(7, model.Table.TotalRow.Count);
-            Assert.Equal("-", model.Table.TotalRow[2]);
+            Assert.Equal("-", model.Table.TotalRow[3]);
         }
 
         [Fact]
@@ -304,20 +305,21 @@ namespace TexasAccountsPortal.UnitTests
 
             Assert.NotNull(model);
             Assert.Equal(7, model.Table.Columns.Count);
-            Assert.Equal("TYPE", model.Table.Columns[2].Header);
+            Assert.Equal("DESCRIPTION / NARRATIVE", model.Table.Columns[2].Header);
+            Assert.Equal("TYPE", model.Table.Columns[3].Header);
 
             // Row 0 is Opening Balance
-            Assert.Equal("OPENING", model.Table.Rows[0][2]);
+            Assert.Equal("OPENING", model.Table.Rows[0][3]);
 
             // Data rows
-            Assert.Equal("RECEIPT", model.Table.Rows[1][2]);
-            Assert.Equal("DEPOSIT", model.Table.Rows[2][2]);
-            Assert.Equal("WITHDRAWAL", model.Table.Rows[3][2]);
-            Assert.Equal("EXPENSE", model.Table.Rows[4][2]);
+            Assert.Equal("RECEIPT", model.Table.Rows[1][3]);
+            Assert.Equal("DEPOSIT", model.Table.Rows[2][3]);
+            Assert.Equal("WITHDRAWAL", model.Table.Rows[3][3]);
+            Assert.Equal("EXPENSE", model.Table.Rows[4][3]);
 
             // Total row
             Assert.Equal(7, model.Table.TotalRow.Count);
-            Assert.Equal("-", model.Table.TotalRow[2]);
+            Assert.Equal("-", model.Table.TotalRow[3]);
         }
     }
 }
