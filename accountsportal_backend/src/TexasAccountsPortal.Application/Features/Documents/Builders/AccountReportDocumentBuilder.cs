@@ -94,6 +94,113 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
 
     }
 
+    private static string ResolveStatementTransactionType(FinancialTransaction t, bool isBankStatement, long entityId)
+    {
+        // 1. Client Receipts / Collections
+        if (t.ReferenceType == TransactionReferenceType.Receipt ||
+            t.ReferenceType == TransactionReferenceType.Sale ||
+            (!string.IsNullOrWhiteSpace(t.ReferenceId) && (t.ReferenceId.StartsWith("RCP", StringComparison.OrdinalIgnoreCase) || t.ReferenceId.StartsWith("TXSRCP", StringComparison.OrdinalIgnoreCase) || t.ReferenceId.StartsWith("CRCPT", StringComparison.OrdinalIgnoreCase))) ||
+            (t.Description != null && t.Description.Contains("Receipt", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "RECEIPT";
+        }
+
+        // 2. Internal Transfers / Contra Movements
+        bool isTransfer = t.TransactionType == FinancialTransactionType.Contra ||
+                          t.ReferenceType == TransactionReferenceType.Transfer ||
+                          (t.SourceBankId.HasValue && t.DestinationBankId.HasValue) ||
+                          (t.SourceAccountId.HasValue && t.DestinationAccountId.HasValue) ||
+                          (t.SourceBankId.HasValue && t.DestinationAccountId.HasValue) ||
+                          (t.SourceAccountId.HasValue && t.DestinationBankId.HasValue);
+
+        if (isTransfer)
+        {
+            if (isBankStatement)
+            {
+                // For a Bank:
+                // Money entering the bank from cash drawer -> DEPOSIT
+                if (t.DestinationBankId == entityId && t.SourceAccountId.HasValue)
+                    return "DEPOSIT";
+                // Money leaving the bank to cash drawer -> WITHDRAWAL
+                if (t.SourceBankId == entityId && t.DestinationAccountId.HasValue)
+                    return "WITHDRAWAL";
+                // Money moving between two banks -> CONTRA
+                if (t.SourceBankId.HasValue && t.DestinationBankId.HasValue)
+                    return "CONTRA";
+
+                return t.DestinationBankId == entityId ? "DEPOSIT" : "WITHDRAWAL";
+            }
+            else
+            {
+                // For a Cash Drawer:
+                // Cash deposited into bank -> DEPOSIT (Deposit to Bank)
+                if (t.SourceAccountId == entityId && t.DestinationBankId.HasValue)
+                    return "DEPOSIT";
+                // Cash withdrawn from bank -> WITHDRAWAL (Bank Withdrawal)
+                if (t.DestinationAccountId == entityId && t.SourceBankId.HasValue)
+                    return "WITHDRAWAL";
+                // Cash moving between drawers -> CONTRA
+                if (t.SourceAccountId.HasValue && t.DestinationAccountId.HasValue)
+                    return "CONTRA";
+
+                return t.SourceAccountId == entityId ? "DEPOSIT" : "WITHDRAWAL";
+            }
+        }
+
+        // 3. Operational Expenses
+        if (t.ReferenceType == TransactionReferenceType.Expense ||
+            t.ExpenseHeaderId.HasValue ||
+            (t.Description != null && t.Description.Contains("Expense", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "EXPENSE";
+        }
+
+        // 4. Payroll / Salaries
+        if (t.ReferenceType == TransactionReferenceType.Salary ||
+            t.ReferenceType == TransactionReferenceType.Advance ||
+            t.ReferenceType == TransactionReferenceType.Loan ||
+            (t.Description != null && t.Description.Contains("Salary", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "SALARY";
+        }
+
+        // 5. Refunds & Returns
+        if (t.TransactionType == FinancialTransactionType.PurchaseReturn ||
+            t.TransactionType == FinancialTransactionType.SalesReturn ||
+            t.ReferenceType == TransactionReferenceType.Refund)
+        {
+            return "REFUND";
+        }
+
+        // 6. Supplier Payments / Settlements / Services
+        if (t.ReferenceType == TransactionReferenceType.SupplierPayment ||
+            t.ReferenceType == TransactionReferenceType.SupplierWallet ||
+            t.ReferenceType == TransactionReferenceType.SupplierCreditClearance ||
+            t.SupplierId.HasValue ||
+            t.ReferenceType is TransactionReferenceType.Visa
+                or TransactionReferenceType.Flight
+                or TransactionReferenceType.Hotel
+                or TransactionReferenceType.Holiday
+                or TransactionReferenceType.Transport
+                or TransactionReferenceType.Vfs
+                or TransactionReferenceType.Other)
+        {
+            return "PAYMENT";
+        }
+
+        // 7. General Directional Fallback
+        if (t.TransactionType == FinancialTransactionType.Incoming)
+        {
+            return isBankStatement ? "DEPOSIT" : "RECEIPT";
+        }
+        if (t.TransactionType == FinancialTransactionType.Outgoing)
+        {
+            return isBankStatement ? "WITHDRAWAL" : "PAYMENT";
+        }
+
+        return "CONTRA";
+    }
+
 
 
     public bool CanBuild(string category, string type)
@@ -191,11 +298,12 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             model.Table.Columns = new List<DocumentColumn>
             {
                 new() { Header = "DATE", RelativeWidth = 1.1f, Alignment = ColumnAlignment.Center },
-                new() { Header = "DOC NO.", RelativeWidth = 1.3f, IsMonoFont = true },
-                new() { Header = "DESCRIPTION / NARRATIVE", RelativeWidth = 3.6f, IsBold = true },
+                new() { Header = "DOC NO.", RelativeWidth = 1.2f, IsMonoFont = true },
+                new() { Header = "TYPE", RelativeWidth = 1.0f, Alignment = ColumnAlignment.Center, IsBold = true },
+                new() { Header = "DESCRIPTION / NARRATIVE", RelativeWidth = 2.8f, IsBold = true },
                 new() { Header = "DEBIT (+)", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#059669" },
                 new() { Header = "CREDIT (-)", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#dc2626" },
-                new() { Header = "RUNNING BAL", RelativeWidth = 1.3f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#1b2559" }
+                new() { Header = "RUNNING BAL", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#1b2559" }
             };
 
             // Opening Balance Row
@@ -204,6 +312,7 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             {
                 start.HasValue ? start.Value.ToString("dd/MM/yyyy") : "-",
                 "-",
+                "OPENING",
                 "OPENING BALANCE - Balance Brought Forward",
                 "-",
                 "-",
@@ -233,10 +342,13 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
                     narration = $"{narration} [Ref: {refText}]";
                 }
 
+                string txType = ResolveStatementTransactionType(t, isBankStatement: false, entityId: acc.Id);
+
                 model.Table.Rows.Add(new List<string>
                 {
                     t.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
                     mt?.DocumentNumber ?? t.DocumentNumber ?? $"#{t.Id}",
+                    txType,
                     narration,
                     debit > 0 ? debit.ToString("0.000") : "-",
                     credit > 0 ? credit.ToString("0.000") : "-",
@@ -248,6 +360,7 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             {
                 "TOTALS",
                 $"{periodTxs.Count} Entries",
+                "-",
                 "Total Movements",
                 periodDebits.ToString("0.000"),
                 periodCredits.ToString("0.000"),
@@ -330,11 +443,12 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             model.Table.Columns = new List<DocumentColumn>
             {
                 new() { Header = "DATE", RelativeWidth = 1.1f, Alignment = ColumnAlignment.Center },
-                new() { Header = "DOC NO.", RelativeWidth = 1.3f, IsMonoFont = true },
-                new() { Header = "DESCRIPTION / NARRATIVE", RelativeWidth = 3.6f, IsBold = true },
+                new() { Header = "DOC NO.", RelativeWidth = 1.2f, IsMonoFont = true },
+                new() { Header = "TYPE", RelativeWidth = 1.0f, Alignment = ColumnAlignment.Center, IsBold = true },
+                new() { Header = "DESCRIPTION / NARRATIVE", RelativeWidth = 2.8f, IsBold = true },
                 new() { Header = "DEBIT (+)", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#059669" },
                 new() { Header = "CREDIT (-)", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#dc2626" },
-                new() { Header = "RUNNING BAL", RelativeWidth = 1.3f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#1b2559" }
+                new() { Header = "RUNNING BAL", RelativeWidth = 1.2f, Alignment = ColumnAlignment.Right, IsBold = true, CustomColor = "#1b2559" }
             };
 
             // Opening Balance Row
@@ -343,6 +457,7 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             {
                 start.HasValue ? start.Value.ToString("dd/MM/yyyy") : "-",
                 "-",
+                "OPENING",
                 "OPENING BALANCE - Balance Brought Forward",
                 "-",
                 "-",
@@ -372,10 +487,13 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
                     narration = $"{narration} [Ref: {refText}]";
                 }
 
+                string txType = ResolveStatementTransactionType(t, isBankStatement: true, entityId: bank.Id);
+
                 model.Table.Rows.Add(new List<string>
                 {
                     t.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
                     mt?.DocumentNumber ?? t.DocumentNumber ?? $"#{t.Id}",
+                    txType,
                     narration,
                     debit > 0 ? debit.ToString("0.000") : "-",
                     credit > 0 ? credit.ToString("0.000") : "-",
@@ -387,6 +505,7 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
             {
                 "TOTALS",
                 $"{periodTxs.Count} Entries",
+                "-",
                 "Total Movements",
                 periodDebits.ToString("0.000"),
                 periodCredits.ToString("0.000"),
