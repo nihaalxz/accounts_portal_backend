@@ -103,7 +103,7 @@ namespace TexasAccountsPortal.IntegrationTests.Fakes
         public Task UpdatePaymentStatusAsync(string serviceType, string id, string status, string? paymentReference = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task UpdateBookingProcessingStatusAsync(string serviceType, long id, string status, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task UpdateBookingOperationClosedAsync(string serviceType, long id, bool operationClosed, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task UpdateReceiptStatusDirectAsync(long receiptId, string status, string? paymentReference = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task UpdateReceiptStatusDirectAsync(long receiptId, string status, string? paymentReference = null, string? bankName = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task UpdateSalesUserEmailAsync(long id, string newEmail, CancellationToken cancellationToken) => Task.CompletedTask;
         public Task<System.Collections.Generic.Dictionary<string, string>> GetBatchDocumentNumbersAsync(System.Collections.Generic.List<(string ServiceType, string ExternalReference)> items, CancellationToken ct = default) => Task.FromResult(new System.Collections.Generic.Dictionary<string, string>());
         public Task NotifySupplierPaymentApprovedAsync(string? serviceType, string? externalReference, CancellationToken cancellationToken = default) => Task.CompletedTask;

@@ -597,9 +597,9 @@ namespace TexasAccountsPortal.Infrastructure.Services
             response.EnsureSuccessStatusCode();
         }
 
-        public async Task UpdateReceiptStatusDirectAsync(long receiptId, string status, string? paymentReference = null, CancellationToken cancellationToken = default)
+        public async Task UpdateReceiptStatusDirectAsync(long receiptId, string status, string? paymentReference = null, string? bankName = null, CancellationToken cancellationToken = default)
         {
-            var payload = new { status = status, paymentReference = paymentReference };
+            var payload = new { status = status, paymentReference = paymentReference, bankName = bankName };
             var response = await _httpClient.PostAsJsonAsync($"api/internal/operations/receipts/{receiptId}/payment-status", payload, cancellationToken);
             response.EnsureSuccessStatusCode();
         }

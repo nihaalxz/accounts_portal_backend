@@ -614,7 +614,9 @@ namespace TexasAccountsPortal.Contracts.SalesEntries
         string? Source = null,
         string? SyncStatus = null,
         string? FailureReason = null,
-        long? AccountsReceiptId = null
+        long? AccountsReceiptId = null,
+        long? DestinationAccountId = null,
+        string? DestinationAccountName = null
     );
 
     public record ReceiptDetailResponse(
@@ -641,7 +643,9 @@ namespace TexasAccountsPortal.Contracts.SalesEntries
         string? Source = null,
         string? SyncStatus = null,
         string? FailureReason = null,
-        long? AccountsReceiptId = null
+        long? AccountsReceiptId = null,
+        long? DestinationAccountId = null,
+        string? DestinationAccountName = null
     );
 
     public record CreateReceiptRequest(

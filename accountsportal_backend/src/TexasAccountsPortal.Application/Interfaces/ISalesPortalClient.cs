@@ -56,7 +56,7 @@ namespace TexasAccountsPortal.Application.Interfaces
         Task UpdatePaymentStatusAsync(string serviceType, string id, string status, string? paymentReference = null, CancellationToken cancellationToken = default);
         Task UpdateBookingProcessingStatusAsync(string serviceType, long id, string status, CancellationToken cancellationToken = default);
         Task UpdateBookingOperationClosedAsync(string serviceType, long id, bool operationClosed, CancellationToken cancellationToken = default);
-        Task UpdateReceiptStatusDirectAsync(long receiptId, string status, string? paymentReference = null, CancellationToken cancellationToken = default);
+        Task UpdateReceiptStatusDirectAsync(long receiptId, string status, string? paymentReference = null, string? bankName = null, CancellationToken cancellationToken = default);
         Task SyncUserAsync(string name, string email, string? password, string userType, bool isActive, CancellationToken cancellationToken);
         Task<System.Collections.Generic.IEnumerable<SalesUserResponse>> GetSalesUsersAsync(CancellationToken cancellationToken);
         Task ToggleSalesUserStatusAsync(long id, bool isActive, CancellationToken cancellationToken);

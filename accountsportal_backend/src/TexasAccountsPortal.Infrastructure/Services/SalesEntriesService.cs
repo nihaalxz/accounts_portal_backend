@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -932,7 +932,7 @@ namespace TexasAccountsPortal.Infrastructure.Services
                     HeadId: localReceipt.HeadId,
                     BookingId: null,
                     BankId: localReceipt.DestinationBankId,
-                    BankName: localReceipt.DestinationBank?.BankName,
+                    BankName: localReceipt.DestinationType == "bank" ? localReceipt.DestinationBank?.BankName : localReceipt.DestinationAccount?.Name,
                     PaymentProof: localReceipt.PaymentProof,
                     PaymentReference: localReceipt.ReferenceId,
                     AgentId: localReceipt.AgentId,
@@ -941,7 +941,9 @@ namespace TexasAccountsPortal.Infrastructure.Services
                     Source: "Accounts",
                     SyncStatus: localReceipt.SyncStatus,
                     FailureReason: localReceipt.FailureReason,
-                    AccountsReceiptId: localReceipt.Id
+                    AccountsReceiptId: localReceipt.Id,
+                    DestinationAccountId: localReceipt.DestinationAccountId,
+                    DestinationAccountName: localReceipt.DestinationAccount?.Name
                 );
             }
 
@@ -997,7 +999,7 @@ namespace TexasAccountsPortal.Infrastructure.Services
                     HeadId: localReceipt.HeadId,
                     BookingId: null,
                     BankId: localReceipt.DestinationBankId,
-                    BankName: localReceipt.DestinationBank?.BankName,
+                    BankName: localReceipt.DestinationType == "bank" ? localReceipt.DestinationBank?.BankName : localReceipt.DestinationAccount?.Name,
                     PaymentProof: localReceipt.PaymentProof,
                     PaymentReference: localReceipt.ReferenceId,
                     AgentId: localReceipt.AgentId,
@@ -1006,7 +1008,9 @@ namespace TexasAccountsPortal.Infrastructure.Services
                     Source: "Accounts",
                     SyncStatus: localReceipt.SyncStatus,
                     FailureReason: localReceipt.FailureReason,
-                    AccountsReceiptId: localReceipt.Id
+                    AccountsReceiptId: localReceipt.Id,
+                    DestinationAccountId: localReceipt.DestinationAccountId,
+                    DestinationAccountName: localReceipt.DestinationAccount?.Name
                 );
             }
 
@@ -1046,7 +1050,7 @@ namespace TexasAccountsPortal.Infrastructure.Services
                         HeadId: anyLocal.HeadId,
                         BookingId: null,
                         BankId: anyLocal.DestinationBankId,
-                        BankName: anyLocal.DestinationBank?.BankName,
+                        BankName: anyLocal.DestinationType == "bank" ? anyLocal.DestinationBank?.BankName : anyLocal.DestinationAccount?.Name,
                         PaymentProof: anyLocal.PaymentProof,
                         PaymentReference: anyLocal.ReferenceId,
                         AgentId: anyLocal.AgentId,
@@ -1055,7 +1059,9 @@ namespace TexasAccountsPortal.Infrastructure.Services
                         Source: "Accounts",
                         SyncStatus: anyLocal.SyncStatus,
                         FailureReason: anyLocal.FailureReason,
-                        AccountsReceiptId: anyLocal.Id
+                        AccountsReceiptId: anyLocal.Id,
+                        DestinationAccountId: anyLocal.DestinationAccountId,
+                        DestinationAccountName: anyLocal.DestinationAccount?.Name
                     );
                 }
 
@@ -1095,6 +1101,45 @@ namespace TexasAccountsPortal.Infrastructure.Services
                 {
                     var agentName = agent.GetFullName();
                     receipt = receipt with { HeadName = agentName, AgentName = agentName, ClientType = "agent" };
+                }
+            }
+
+            if (string.Equals(receipt.PaymentMode, "cash", StringComparison.OrdinalIgnoreCase))
+            {
+                var linkedTx = await (from t in db.Transactions.AsNoTracking()
+                                      join a in db.Accounts.AsNoTracking() on t.DestinationAccountId equals a.Id
+                                      where t.DestinationAccountId.HasValue
+                                         && t.TransactionType == Domain.Enums.FinancialTransactionType.Incoming
+                                         && (
+                                             (!string.IsNullOrEmpty(receipt.DocumentNumber) && t.Description != null && t.Description.Contains(receipt.DocumentNumber)) ||
+                                             (!string.IsNullOrEmpty(receipt.ReceiptId) && t.Description != null && t.Description.Contains(receipt.ReceiptId)) ||
+                                             t.ReferenceId == receipt.Id.ToString()
+                                         )
+                                      select new { AccountId = t.DestinationAccountId.Value, AccountName = a.Name })
+                                     .FirstOrDefaultAsync(ct);
+
+                if (linkedTx != null)
+                {
+                    receipt = receipt with
+                    {
+                        BankName = linkedTx.AccountName,
+                        DestinationAccountId = linkedTx.AccountId,
+                        DestinationAccountName = linkedTx.AccountName
+                    };
+                }
+                else if (matchedLocal != null && matchedLocal.DestinationAccountId.HasValue)
+                {
+                    var accName = await db.Accounts.AsNoTracking()
+                        .Where(a => a.Id == matchedLocal.DestinationAccountId.Value)
+                        .Select(a => a.Name)
+                        .FirstOrDefaultAsync(ct);
+
+                    receipt = receipt with
+                    {
+                        BankName = accName ?? receipt.BankName,
+                        DestinationAccountId = matchedLocal.DestinationAccountId,
+                        DestinationAccountName = accName
+                    };
                 }
             }
 
@@ -1922,7 +1967,15 @@ namespace TexasAccountsPortal.Infrastructure.Services
                 }
             }
 
-            await _salesPortalClient.UpdateReceiptStatusDirectAsync(receiptId, status, cleanRef, ct);
+            string? syncBankName = null;
+            if (cashAccountId.HasValue)
+            {
+                using var readDb = _dbContextFactory.CreateDbContext();
+                var cashAcc = await readDb.Accounts.AsNoTracking().FirstOrDefaultAsync(a => a.Id == cashAccountId.Value, ct);
+                syncBankName = cashAcc?.Name;
+            }
+
+            await _salesPortalClient.UpdateReceiptStatusDirectAsync(receiptId, status, cleanRef, syncBankName, ct);
 
             await _receiptNotificationService.PublishReceiptChangedAsync(
                 referenceType: ReferenceTypes.Receipt,
@@ -1954,6 +2007,7 @@ namespace TexasAccountsPortal.Infrastructure.Services
                 throw new InvalidOperationException($"Reference ID '{cleanRef}' already exists. Reference ID must be unique.");
 
             string? bankName = null;
+            string? cashAccountName = null;
             if (isBank)
             {
                 if (!request.DestinationBankId.HasValue)
@@ -1976,6 +2030,7 @@ namespace TexasAccountsPortal.Infrastructure.Services
                 }
                 var cashAcc = await db.Accounts.FindAsync(new object[] { request.DestinationAccountId.Value }, ct);
                 if (cashAcc == null) throw new KeyNotFoundException("Destination cash account not found.");
+                cashAccountName = cashAcc.Name;
             }
 
             var receiptDocNo = $"TXS-ARCPT-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}";
@@ -2242,11 +2297,18 @@ namespace TexasAccountsPortal.Infrastructure.Services
                     HeadId: null,
                     BookingId: null,
                     BankId: isBank ? request.DestinationBankId : null,
-                    BankName: bankName,
+                    BankName: isBank ? bankName : cashAccountName,
                     PaymentProof: request.PaymentProof,
                     PaymentReference: cleanRef,
                     AgentId: null,
-                    DocumentNumber: receiptDocNo
+                    DocumentNumber: receiptDocNo,
+                    SalesmanName: null,
+                    Source: "Accounts",
+                    SyncStatus: "Synced",
+                    FailureReason: null,
+                    AccountsReceiptId: accountsReceipt.Id,
+                    DestinationAccountId: isBank ? null : request.DestinationAccountId,
+                    DestinationAccountName: isBank ? null : cashAccountName
                 );
             }
         }
