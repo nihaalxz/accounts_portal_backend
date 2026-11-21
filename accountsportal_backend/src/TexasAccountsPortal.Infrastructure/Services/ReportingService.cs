@@ -768,7 +768,7 @@ namespace TexasAccountsPortal.Infrastructure.Services
                 if (salesmenReport != null && !salesmanId.HasValue && (dealStatus == null || dealStatus == "all"))
                 {
                     var salesmenTotalSales = salesmenReport.Sum(s => s.TotalSalesValue);
-                    var salesmenTotalProfit = salesmenReport.Sum(s => s.TotalProfit);
+                    var salesmenTotalProfit = salesmenReport.Sum(s => s.TotalFinalProfit);
                     var diffSales = Math.Abs(bookingSummary.TotalSalesValue - salesmenTotalSales);
                     var diffProfit = Math.Abs(finalizedGrossProfit - salesmenTotalProfit);
                     reconciliationDifference = diffSales + diffProfit;
