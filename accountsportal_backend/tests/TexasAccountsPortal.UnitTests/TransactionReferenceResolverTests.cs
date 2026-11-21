@@ -294,5 +294,6 @@ namespace TexasAccountsPortal.UnitTests
         public Task<PagedResponse<OpenDealEntryResponse>> GetOpenDealsAsync(int page, int pageSize, string? serviceType = null, string? search = null, long? salesmanId = null, string? paymentStatus = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<OpenDealsSummaryResponse> GetOpenDealsSummaryAsync(string? serviceType = null, string? search = null, long? salesmanId = null, string? paymentStatus = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<TexasAccountsPortal.Contracts.Reporting.OperationalBookingFinancialsSummaryResponse> GetBookingFinancialsSummaryAsync(DateTime? startDate = null, DateTime? endDate = null, string? dealStatus = null, long? salesmanId = null, CancellationToken cancellationToken = default) => Task.FromResult(new TexasAccountsPortal.Contracts.Reporting.OperationalBookingFinancialsSummaryResponse());
+        public Task UpdateReceiptStatusDirectAsync(long receiptId, string status, string? paymentReference = null, string? bankName = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

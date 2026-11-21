@@ -643,8 +643,8 @@ namespace TexasAccountsPortal.Infrastructure.Services
             CancellationToken cancellationToken)
         {
             var now = TexasAccountsPortal.Domain.Common.BahrainTime.Now;
-            var start = startDate ?? new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
-            var end = endDate ?? new DateTime(now.Year, now.Month, DateTime.DaysInMonth(now.Year, now.Month), 23, 59, 59, 999, DateTimeKind.Unspecified);
+            var start = startDate ?? new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+            var end = endDate ?? now.Date;
 
             // Ensure inclusive day boundaries
             start = start.Date;
@@ -674,15 +674,16 @@ namespace TexasAccountsPortal.Infrastructure.Services
 
             foreach (var b in bookingSummary.ServiceBreakdown)
             {
+                var srvMargin = b.SalesAmount > 0m ? Math.Round((b.FinalProfitAmount / b.SalesAmount) * 100m, 2) : 0m;
                 revenueItems.Add(new ServiceFinancialLineItem(
                     ServiceType: b.ServiceType,
                     ServiceLabel: b.ServiceLabel,
                     BookingCount: b.BookingCount,
                     SalesAmount: b.SalesAmount,
                     CostAmount: b.CostAmount,
-                    ProfitAmount: b.ProfitAmount,
+                    ProfitAmount: b.FinalProfitAmount,
                     FinalProfitAmount: b.FinalProfitAmount,
-                    MarginPercentage: b.MarginPercentage
+                    MarginPercentage: srvMargin
                 ));
 
                 costItems.Add(new ServiceFinancialLineItem(
@@ -691,9 +692,9 @@ namespace TexasAccountsPortal.Infrastructure.Services
                     BookingCount: b.BookingCount,
                     SalesAmount: b.SalesAmount,
                     CostAmount: b.CostAmount,
-                    ProfitAmount: b.ProfitAmount,
+                    ProfitAmount: b.FinalProfitAmount,
                     FinalProfitAmount: b.FinalProfitAmount,
-                    MarginPercentage: b.MarginPercentage
+                    MarginPercentage: srvMargin
                 ));
             }
 
@@ -703,11 +704,13 @@ namespace TexasAccountsPortal.Infrastructure.Services
             var grossSupplierCost = bookingSummary.TotalSupplierCost;
             var netCostOfSales = Math.Max(0m, grossSupplierCost - approvedPurchaseReturns);
 
-            var grossProfit = netRevenue - netCostOfSales;
-            var grossMarginPercentage = netRevenue > 0m ? Math.Round((grossProfit / netRevenue) * 100m, 2) : 0m;
-
+            var unadjustedGrossProfit = netRevenue - netCostOfSales;
             var finalizedGrossProfit = bookingSummary.TotalFinalProfit;
-            var estimatedGrossProfit = Math.Max(0m, grossProfit - finalizedGrossProfit);
+            var estimatedGrossProfit = Math.Max(0m, unadjustedGrossProfit - finalizedGrossProfit);
+
+            // Calculations use finalized profit
+            var grossProfit = finalizedGrossProfit;
+            var grossMarginPercentage = netRevenue > 0m ? Math.Round((grossProfit / netRevenue) * 100m, 2) : 0m;
 
             // 4. Operating Expenses
             var approvedExpenses = await _db.Expenses
@@ -745,12 +748,12 @@ namespace TexasAccountsPortal.Infrastructure.Services
             var totalPayrollExpenses = paidSalaries.Sum(s => s.NetSalary);
             var totalOperatingExpenses = totalApprovedExpenses + totalPayrollExpenses;
 
-            // 6. Net Profit
+            // 6. Net Profit (calculated using finalized profit)
             var netProfit = grossProfit - totalOperatingExpenses;
             var netMarginPercentage = netRevenue > 0m ? Math.Round((netProfit / netRevenue) * 100m, 2) : 0m;
 
-            var finalizedNetProfit = finalizedGrossProfit - totalOperatingExpenses;
-            var finalizedNetMarginPercentage = netRevenue > 0m ? Math.Round((finalizedNetProfit / netRevenue) * 100m, 2) : 0m;
+            var finalizedNetProfit = netProfit;
+            var finalizedNetMarginPercentage = netMarginPercentage;
 
             var isProfitable = netProfit >= 0m;
 
@@ -767,7 +770,7 @@ namespace TexasAccountsPortal.Infrastructure.Services
                     var salesmenTotalSales = salesmenReport.Sum(s => s.TotalSalesValue);
                     var salesmenTotalProfit = salesmenReport.Sum(s => s.TotalProfit);
                     var diffSales = Math.Abs(bookingSummary.TotalSalesValue - salesmenTotalSales);
-                    var diffProfit = Math.Abs(bookingSummary.TotalGrossProfit - salesmenTotalProfit);
+                    var diffProfit = Math.Abs(finalizedGrossProfit - salesmenTotalProfit);
                     reconciliationDifference = diffSales + diffProfit;
                     reconciled = reconciliationDifference < 0.005m;
                     if (!reconciled)

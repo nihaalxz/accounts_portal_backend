@@ -18,7 +18,15 @@ public class ProfitLossReportDocumentBuilder : IDocumentBuilder
 
     private static readonly HashSet<string> SupportedTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "profit-loss", "profitloss", "pnl", "income-statement"
+        "profit-loss",
+        "profitloss",
+        "pnl",
+        "income-statement",
+        "incomestatement",
+        "profit-loss-operational",
+        "profitlossoperational",
+        "operational-profit-loss",
+        "operationalprofitloss"
     };
 
     public ProfitLossReportDocumentBuilder(
@@ -33,14 +41,15 @@ public class ProfitLossReportDocumentBuilder : IDocumentBuilder
     {
         if (string.IsNullOrWhiteSpace(type)) return string.Empty;
         var key = type.Trim().ToLowerInvariant().Replace("-", "").Replace("_", "");
-        if (key is "profitloss" or "pnl" or "incomestatement") return "profit-loss";
+        if (key is "profitloss" or "pnl" or "incomestatement" or "profitlossoperational" or "operationalprofitloss") return "profit-loss";
         return key;
     }
 
     public bool CanBuild(string category, string type)
     {
         var norm = NormalizeType(type);
-        return string.Equals(category, "report", StringComparison.OrdinalIgnoreCase) && SupportedTypes.Contains(norm);
+        return string.Equals(category, "report", StringComparison.OrdinalIgnoreCase) && 
+               (SupportedTypes.Contains(norm) || SupportedTypes.Contains(type));
     }
 
     public async Task<DocumentDataModel?> BuildAsync(DocumentBuildArgs args, CancellationToken ct = default)
@@ -97,7 +106,7 @@ public class ProfitLossReportDocumentBuilder : IDocumentBuilder
         });
         model.SummaryCards.Add(new DocumentSummaryCard
         {
-            Label = "GROSS PROFIT",
+            Label = "FINAL PROFIT",
             Value = $"{pnl.GrossProfit:N3} BHD",
             Subtext = $"Margin: {pnl.GrossMarginPercentage:F1}%",
             HighlightColor = "#059669"
