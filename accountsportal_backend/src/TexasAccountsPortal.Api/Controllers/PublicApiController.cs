@@ -673,7 +673,18 @@ namespace TexasAccountsPortal.Api.Controllers
             }
 
             await _dbContext.SaveChangesAsync(default);
-            return Ok(new { Success = true });
+            return Ok(new
+            {
+                Success = true,
+                Payments = existingPayments.Select(p => new
+                {
+                    PaymentId = p.Id,
+                    RowKey = p.SalesFeeRowKey,
+                    Amount = p.Amount,
+                    Status = p.Status.ToString(),
+                    DocumentNumber = p.DocumentNumber
+                }).ToList()
+            });
         }
 
         [HttpGet("sales-returns/check")]
