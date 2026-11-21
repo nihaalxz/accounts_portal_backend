@@ -76,6 +76,7 @@ namespace TexasAccountsPortal.Application.Interfaces
         Task<byte[]?> GetQuotationPdfAsync(string idOrDoc, CancellationToken ct);
         Task<bool> UpdateQuotationStatusAsync(string idOrDoc, string status, string? note = null, CancellationToken ct = default);
         Task<bool> AddProfitAdjustmentAsync(TexasAccountsPortal.Contracts.SalesEntries.SalesmanProfitAdjustmentRequest request, CancellationToken cancellationToken = default);
+        Task<IEnumerable<SalesmanProfitAdjustmentHistoryResponse>> GetProfitAdjustmentsAsync(long? salesmanId = null, string? bookingType = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken cancellationToken = default);
     }
 
     public class SalesUserResponse

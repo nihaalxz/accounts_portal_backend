@@ -113,6 +113,7 @@ namespace TexasAccountsPortal.IntegrationTests.Fakes
         public Task<byte[]?> GetQuotationPdfAsync(string idOrDoc, CancellationToken ct) => throw new NotImplementedException();
         public Task<bool> UpdateQuotationStatusAsync(string idOrDoc, string status, string? note = null, CancellationToken ct = default) => Task.FromResult(true);
         public Task<bool> AddProfitAdjustmentAsync(TexasAccountsPortal.Contracts.SalesEntries.SalesmanProfitAdjustmentRequest request, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<IEnumerable<TexasAccountsPortal.Contracts.SalesEntries.SalesmanProfitAdjustmentHistoryResponse>> GetProfitAdjustmentsAsync(long? salesmanId = null, string? bookingType = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken cancellationToken = default) => Task.FromResult<IEnumerable<TexasAccountsPortal.Contracts.SalesEntries.SalesmanProfitAdjustmentHistoryResponse>>(new List<TexasAccountsPortal.Contracts.SalesEntries.SalesmanProfitAdjustmentHistoryResponse>());
 
         public Task<OperationalBookingFinancialsSummaryResponse> GetBookingFinancialsSummaryAsync(
             DateTime? startDate = null, 

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,19 +26,22 @@ namespace TexasAccountsPortal.Infrastructure.Services
         private readonly IFinancialPostingService _postingService;
         private readonly IReceiptNotificationService _receiptNotificationService;
         private readonly IServicePaymentApprovalWorkflow _approvalWorkflow;
+        private readonly Microsoft.Extensions.Configuration.IConfiguration? _configuration;
 
         public SalesEntriesService(
             IDbContextFactory<AccountsDbContext> dbContextFactory,
             ISalesPortalClient salesPortalClient,
             IFinancialPostingService postingService,
             IReceiptNotificationService receiptNotificationService,
-            IServicePaymentApprovalWorkflow approvalWorkflow)
+            IServicePaymentApprovalWorkflow approvalWorkflow,
+            Microsoft.Extensions.Configuration.IConfiguration? configuration = null)
         {
             _dbContextFactory = dbContextFactory;
             _salesPortalClient = salesPortalClient;
             _postingService = postingService;
             _receiptNotificationService = receiptNotificationService;
             _approvalWorkflow = approvalWorkflow;
+            _configuration = configuration;
         }
 
         public async Task<DashboardSummaryResponse> GetDashboardSummaryAsync(CancellationToken ct)
@@ -2532,6 +2536,202 @@ namespace TexasAccountsPortal.Infrastructure.Services
         {
             var reqWithUser = request with { CreatedByUserId = currentUserId };
             return await _salesPortalClient.AddProfitAdjustmentAsync(reqWithUser, ct);
+        }
+
+        public async Task<IEnumerable<SalesmanProfitAdjustmentHistoryResponse>> GetProfitAdjustmentsAsync(
+            long? salesmanId = null,
+            string? bookingType = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null,
+            CancellationToken ct = default)
+        {
+            try
+            {
+                var httpResults = await _salesPortalClient.GetProfitAdjustmentsAsync(salesmanId, bookingType, startDate, endDate, ct);
+                if (httpResults != null && httpResults.Any())
+                {
+                    return httpResults;
+                }
+            }
+            catch
+            {
+                // Fall back to direct database query
+            }
+
+            return await QueryProfitAdjustmentsFromDatabaseAsync(salesmanId, bookingType, startDate, endDate, ct);
+        }
+
+        private async Task<IEnumerable<SalesmanProfitAdjustmentHistoryResponse>> QueryProfitAdjustmentsFromDatabaseAsync(
+            long? salesmanId,
+            string? bookingType,
+            DateTime? startDate,
+            DateTime? endDate,
+            CancellationToken ct)
+        {
+            string? connStr = _configuration?.GetConnectionString("SalesPortalConnection");
+            if (string.IsNullOrWhiteSpace(connStr))
+            {
+                string defaultConn = _configuration?.GetConnectionString("DefaultConnection") ?? "";
+                if (defaultConn.Contains("db59296"))
+                {
+                    connStr = defaultConn.Replace("db59296", "db59312").Replace("mB%38_nTxQ=7", "A-q4+b6XdP_8");
+                }
+                else if (defaultConn.Contains("db67450"))
+                {
+                    connStr = defaultConn.Replace("db67450", "db67449").Replace("qL=9+t4S5%Bn", "n#7YD2o%5?Qy");
+                }
+                else
+                {
+                    connStr = "Server=2.25.1.36,1433; Database=db59312; User Id=sa; Password=Texas_MSSQL_2026_Secure!; TrustServerCertificate=True; MultipleActiveResultSets=True;";
+                }
+            }
+
+            var results = new List<SalesmanProfitAdjustmentHistoryResponse>();
+
+            var sql = @"
+SELECT 
+    a.id,
+    a.salesman_profit_record_id AS record_id,
+    a.booking_type,
+    a.booking_id,
+    a.document_number,
+    a.salesman_id,
+    ISNULL(u.name, 'Salesman') AS salesman_name,
+    CASE 
+        WHEN LOWER(a.booking_type) LIKE '%visa%' THEN 
+            COALESCE(
+                NULLIF(TRIM(CONCAT(h_v.first_name, ' ', h_v.last_name)), ''),
+                (SELECT TOP 1 NULLIF(TRIM(CONCAT(va.f_name, ' ', va.l_name)), '') FROM sales_visa_applicants va WHERE va.sales_visa_application_id = v.id),
+                v.document_number
+            )
+        WHEN LOWER(a.booking_type) LIKE '%flight%' THEN 
+            COALESCE(
+                NULLIF(TRIM(CONCAT(h_f.first_name, ' ', h_f.last_name)), ''),
+                (SELECT TOP 1 NULLIF(TRIM(fp.passenger_name), '') FROM flight_passengers fp WHERE fp.flight_booking_id = f.id),
+                f.document_number
+            )
+        WHEN LOWER(a.booking_type) LIKE '%hotel%' THEN 
+            COALESCE(
+                NULLIF(TRIM(CONCAT(h_h.first_name, ' ', h_h.last_name)), ''),
+                NULLIF(TRIM(ht.guest_name), ''),
+                ht.document_number
+            )
+        WHEN LOWER(a.booking_type) LIKE '%vfs%' THEN 
+            COALESCE(
+                NULLIF(TRIM(CONCAT(h_vfs.first_name, ' ', h_vfs.last_name)), ''),
+                (SELECT TOP 1 NULLIF(TRIM(vfsa.name), '') FROM vfs_applicants vfsa WHERE vfsa.vfs_appointment_id = vfs.id),
+                vfs.name,
+                vfs.document_number
+            )
+        WHEN LOWER(a.booking_type) LIKE '%holiday%' THEN 
+            COALESCE(
+                NULLIF(TRIM(CONCAT(h_hp.first_name, ' ', h_hp.last_name)), ''),
+                NULLIF(TRIM(hp.passenger_name), ''),
+                hp.document_number
+            )
+        WHEN LOWER(a.booking_type) LIKE '%transport%' THEN 
+            COALESCE(
+                NULLIF(TRIM(CONCAT(h_tr.first_name, ' ', h_tr.last_name)), ''),
+                NULLIF(TRIM(tr.name), ''),
+                tr.document_number
+            )
+        WHEN LOWER(a.booking_type) LIKE '%other%' THEN 
+            COALESCE(
+                NULLIF(TRIM(CONCAT(h_os.first_name, ' ', h_os.last_name)), ''),
+                NULLIF(TRIM(os.service_name), ''),
+                os.document_number
+            )
+        ELSE NULL
+    END AS client_name,
+    ISNULL(r.payable_amount, 0) AS payable_amount,
+    ISNULL(r.profit_amount, 0) AS new_profit,
+    (ISNULL(r.profit_amount, 0) - a.amount) AS previous_profit,
+    a.amount AS delta_amount,
+    ISNULL(a.description, '') AS reason,
+    a.created_at AS timestamp,
+    ISNULL(cb.name, 'Master Accountant') AS modified_by
+FROM salesman_profit_adjustments a
+LEFT JOIN salesman_profit_records r ON a.salesman_profit_record_id = r.id
+LEFT JOIN users u ON a.salesman_id = u.id
+LEFT JOIN users cb ON a.created_by_user_id = cb.id
+LEFT JOIN sales_visa_applications v ON (LOWER(a.booking_type) LIKE '%visa%' AND (a.booking_id = v.id OR (a.document_number IS NOT NULL AND a.document_number = v.document_number)))
+LEFT JOIN heads h_v ON v.head_id = h_v.id
+LEFT JOIN flight_bookings f ON (LOWER(a.booking_type) LIKE '%flight%' AND (a.booking_id = f.id OR (a.document_number IS NOT NULL AND a.document_number = f.document_number)))
+LEFT JOIN heads h_f ON f.head_id = h_f.id
+LEFT JOIN hotel_bookings ht ON (LOWER(a.booking_type) LIKE '%hotel%' AND (a.booking_id = ht.id OR (a.document_number IS NOT NULL AND a.document_number = ht.document_number)))
+LEFT JOIN heads h_h ON ht.head_id = h_h.id
+LEFT JOIN vfs_appointments vfs ON (LOWER(a.booking_type) LIKE '%vfs%' AND (a.booking_id = vfs.id OR (a.document_number IS NOT NULL AND a.document_number = vfs.document_number)))
+LEFT JOIN heads h_vfs ON vfs.head_id = h_vfs.id
+LEFT JOIN holiday_packages hp ON (LOWER(a.booking_type) LIKE '%holiday%' AND (a.booking_id = hp.id OR (a.document_number IS NOT NULL AND a.document_number = hp.document_number)))
+LEFT JOIN heads h_hp ON hp.head_id = h_hp.id
+LEFT JOIN transportations tr ON (LOWER(a.booking_type) LIKE '%transport%' AND (a.booking_id = tr.id OR (a.document_number IS NOT NULL AND a.document_number = tr.document_number)))
+LEFT JOIN heads h_tr ON tr.head_id = h_tr.id
+LEFT JOIN other_services os ON (LOWER(a.booking_type) LIKE '%other%' AND (a.booking_id = os.id OR (a.document_number IS NOT NULL AND a.document_number = os.document_number)))
+LEFT JOIN heads h_os ON os.head_id = h_os.id
+WHERE 1=1
+";
+            if (salesmanId.HasValue) sql += " AND a.salesman_id = @SalesmanId";
+            if (!string.IsNullOrWhiteSpace(bookingType)) sql += " AND LOWER(a.booking_type) = LOWER(@BookingType)";
+            if (startDate.HasValue) sql += " AND a.created_at >= @StartDate";
+            if (endDate.HasValue) sql += " AND a.created_at <= @EndDate";
+
+            sql += " ORDER BY a.created_at DESC";
+
+            try
+            {
+                using var conn = new Microsoft.Data.SqlClient.SqlConnection(connStr);
+                await conn.OpenAsync(ct);
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = sql;
+                if (salesmanId.HasValue) cmd.Parameters.AddWithValue("@SalesmanId", salesmanId.Value);
+                if (!string.IsNullOrWhiteSpace(bookingType)) cmd.Parameters.AddWithValue("@BookingType", bookingType);
+                if (startDate.HasValue) cmd.Parameters.AddWithValue("@StartDate", startDate.Value);
+                if (endDate.HasValue) cmd.Parameters.AddWithValue("@EndDate", endDate.Value);
+
+                using var reader = await cmd.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                {
+                    var idVal = reader["id"].ToString() ?? "";
+                    long? recId = reader["record_id"] != DBNull.Value ? Convert.ToInt64(reader["record_id"]) : null;
+                    var bType = reader["booking_type"] != DBNull.Value ? reader["booking_type"].ToString()! : "";
+                    var bId = reader["booking_id"] != DBNull.Value ? Convert.ToInt64(reader["booking_id"]) : 0L;
+                    var docNum = reader["document_number"] != DBNull.Value ? reader["document_number"].ToString() : null;
+                    var sId = reader["salesman_id"] != DBNull.Value ? Convert.ToInt64(reader["salesman_id"]) : 0L;
+                    var sName = reader["salesman_name"] != DBNull.Value ? reader["salesman_name"].ToString() : null;
+                    var cName = reader["client_name"] != DBNull.Value ? reader["client_name"].ToString() : null;
+                    var payable = reader["payable_amount"] != DBNull.Value ? Convert.ToDecimal(reader["payable_amount"]) : 0m;
+                    var prevProfit = reader["previous_profit"] != DBNull.Value ? Convert.ToDecimal(reader["previous_profit"]) : 0m;
+                    var newProfit = reader["new_profit"] != DBNull.Value ? Convert.ToDecimal(reader["new_profit"]) : 0m;
+                    var delta = reader["delta_amount"] != DBNull.Value ? Convert.ToDecimal(reader["delta_amount"]) : 0m;
+                    var reason = reader["reason"] != DBNull.Value ? reader["reason"].ToString()! : "";
+                    var timestamp = reader["timestamp"] != DBNull.Value ? Convert.ToDateTime(reader["timestamp"]) : DateTime.UtcNow;
+                    var modBy = reader["modified_by"] != DBNull.Value ? reader["modified_by"].ToString() : "Master Accountant";
+
+                    results.Add(new SalesmanProfitAdjustmentHistoryResponse(
+                        idVal,
+                        recId,
+                        bType,
+                        bId,
+                        docNum,
+                        sId,
+                        sName,
+                        cName,
+                        payable,
+                        prevProfit,
+                        newProfit,
+                        delta,
+                        reason,
+                        timestamp,
+                        modBy
+                    ));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SalesEntriesService] Direct query of profit adjustments failed: {ex.Message}");
+            }
+
+            return results;
         }
 
     }

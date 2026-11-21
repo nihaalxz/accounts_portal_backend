@@ -959,6 +959,24 @@ namespace TexasAccountsPortal.Contracts.SalesEntries
         long? CreatedByUserId = null
     );
 
+    public record SalesmanProfitAdjustmentHistoryResponse(
+        string Id,
+        long? RecordId,
+        string BookingType,
+        long BookingId,
+        string? DocumentNumber,
+        long SalesmanId,
+        string? SalesmanName,
+        string? ClientName,
+        decimal PayableAmount,
+        decimal PreviousProfit,
+        decimal NewProfit,
+        decimal DeltaAmount,
+        string Reason,
+        DateTime Timestamp,
+        string? ModifiedBy
+    );
+
     public sealed class OpenDealEntryResponse
     {
         public long Id { get; set; }

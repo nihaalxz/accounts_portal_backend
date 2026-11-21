@@ -512,6 +512,19 @@ namespace TexasAccountsPortal.Api.Controllers
             }
         }
 
+        [HttpGet("profit-adjustments")]
+        [Authorize(Policy = "RequireAccountant")]
+        public async Task<ActionResult<IEnumerable<SalesmanProfitAdjustmentHistoryResponse>>> GetProfitAdjustments(
+            [FromQuery] long? salesmanId = null,
+            [FromQuery] string? bookingType = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            CancellationToken ct = default)
+        {
+            var result = await _salesEntriesService.GetProfitAdjustmentsAsync(salesmanId, bookingType, startDate, endDate, ct);
+            return Ok(result);
+        }
+
         public record UpdateBookingPaymentStatusRequest(string Status, long? CashAccountId, string? ReferenceId = null);
 
         [HttpPost("receipts/{id:long}/payment-status")]

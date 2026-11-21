@@ -72,6 +72,7 @@ namespace TexasAccountsPortal.UnitTests
             public Task<byte[]?> GetQuotationPdfAsync(string idOrDoc, CancellationToken ct) => throw new NotImplementedException();
             public Task<bool> UpdateQuotationStatusAsync(string idOrDoc, string status, string? note = null, CancellationToken ct = default) => throw new NotImplementedException();
             public Task<bool> AddProfitAdjustmentAsync(SalesmanProfitAdjustmentRequest request, long currentUserId, CancellationToken ct = default) => throw new NotImplementedException();
+            public Task<IEnumerable<SalesmanProfitAdjustmentHistoryResponse>> GetProfitAdjustmentsAsync(long? salesmanId = null, string? bookingType = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken ct = default) => Task.FromResult<IEnumerable<SalesmanProfitAdjustmentHistoryResponse>>(new List<SalesmanProfitAdjustmentHistoryResponse>());
         }
 
         [Fact]

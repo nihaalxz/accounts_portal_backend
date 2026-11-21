@@ -833,6 +833,32 @@ namespace TexasAccountsPortal.Infrastructure.Services
             return true;
         }
 
+        public async Task<IEnumerable<SalesmanProfitAdjustmentHistoryResponse>> GetProfitAdjustmentsAsync(
+            long? salesmanId = null,
+            string? bookingType = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var query = new List<string>();
+                if (salesmanId.HasValue) query.Add($"salesmanId={salesmanId.Value}");
+                if (!string.IsNullOrWhiteSpace(bookingType)) query.Add($"bookingType={Uri.EscapeDataString(bookingType)}");
+                if (startDate.HasValue) query.Add($"startDate={Uri.EscapeDataString(startDate.Value.ToString("o"))}");
+                if (endDate.HasValue) query.Add($"endDate={Uri.EscapeDataString(endDate.Value.ToString("o"))}");
+
+                var url = "api/internal/profit/adjustments" + (query.Count > 0 ? "?" + string.Join("&", query) : "");
+                var res = await GetAsync<List<SalesmanProfitAdjustmentHistoryResponse>>(url, cancellationToken);
+                return res ?? Enumerable.Empty<SalesmanProfitAdjustmentHistoryResponse>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[SalesPortalClient] Failed to fetch profit adjustments from Sales Portal API");
+                return Enumerable.Empty<SalesmanProfitAdjustmentHistoryResponse>();
+            }
+        }
+
         public record BatchDocNoDto(string ServiceType, string ExternalReference, string DocumentNumber);
     }
 }
