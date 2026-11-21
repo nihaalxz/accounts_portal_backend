@@ -2074,6 +2074,14 @@ namespace TexasAccountsPortal.Infrastructure.Services
                 db.AccountsReceipts.Add(accountsReceipt);
                 await db.SaveChangesAsync(ct);
 
+                var agentSalesmanSuffix = !string.IsNullOrWhiteSpace(request.SalesmanName) ? $" (Salesman:{request.SalesmanName.Trim()})" : "";
+                var agentEnding = clientName.EndsWith('.') ? "" : ".";
+                var agentBaseDesc = $"Agent receipt [{receiptDocNo}] for {clientName}{agentEnding}{agentSalesmanSuffix}";
+                if (!string.IsNullOrWhiteSpace(request.Description) && !request.Description.StartsWith("Payment Receipt from", StringComparison.OrdinalIgnoreCase) && !request.Description.Equals("Payment Collection", StringComparison.OrdinalIgnoreCase))
+                {
+                    agentBaseDesc += $" {request.Description.Trim()}";
+                }
+
                 // Post incoming transaction to Cash/Bank and credit agent wallet atomically
                 var idempotencyKey = $"accounts-receipt-agent-{accountsReceipt.Id}-{Guid.NewGuid()}";
                 var transactionRequest = new TexasAccountsPortal.Contracts.Transactions.CreateIncomingTransactionRequest(
@@ -2083,7 +2091,7 @@ namespace TexasAccountsPortal.Infrastructure.Services
                     PaymentMethod: isBank ? "bank" : "cash",
                     ReferenceType: "accounts_receipt",
                     ReferenceId: cleanRef,
-                    Description: $"Agent receipt [{receiptDocNo}] for {clientName}. {(string.IsNullOrWhiteSpace(request.Description) ? "Payment Collection" : request.Description.Trim())}",
+                    Description: agentBaseDesc,
                     RecipientType: "Agent",
                     RecipientId: agent.Id
                 );
@@ -2198,6 +2206,14 @@ namespace TexasAccountsPortal.Infrastructure.Services
                         accountsReceipt.FailureReason = null;
                         await db.SaveChangesAsync(ct);
 
+                        var customerSalesmanSuffix = !string.IsNullOrWhiteSpace(request.SalesmanName) ? $" (Salesman:{request.SalesmanName.Trim()})" : "";
+                        var clientEnding = clientName.EndsWith('.') ? "" : ".";
+                        var customerBaseDesc = $"Customer receipt [{spReceipt.DocumentNumber ?? receiptDocNo}] for {clientName}{clientEnding}{customerSalesmanSuffix}";
+                        if (!string.IsNullOrWhiteSpace(request.Description) && !request.Description.StartsWith("Payment Receipt from", StringComparison.OrdinalIgnoreCase) && !request.Description.Equals("Payment Collection", StringComparison.OrdinalIgnoreCase))
+                        {
+                            customerBaseDesc += $" {request.Description.Trim()}";
+                        }
+
                         // Post incoming transaction to Cash/Bank in Accounts Portal
                         var idempotencyKey = $"accounts-receipt-customer-{accountsReceipt.Id}-{Guid.NewGuid()}";
                         var transactionRequest = new TexasAccountsPortal.Contracts.Transactions.CreateIncomingTransactionRequest(
@@ -2207,9 +2223,7 @@ namespace TexasAccountsPortal.Infrastructure.Services
                             PaymentMethod: isBank ? "bank" : "cash",
                             ReferenceType: "receipt",
                             ReferenceId: cleanRef,
-                            Description: !string.IsNullOrWhiteSpace(request.Description) && !request.Description.StartsWith("Payment Receipt from", StringComparison.OrdinalIgnoreCase) && !request.Description.Equals("Payment Collection", StringComparison.OrdinalIgnoreCase)
-                                ? $"Customer receipt [{spReceipt.DocumentNumber ?? receiptDocNo}] for {clientName}. {request.Description.Trim()}"
-                                : $"Customer receipt [{spReceipt.DocumentNumber ?? receiptDocNo}] for {clientName}.",
+                            Description: customerBaseDesc,
                             RecipientType: "Head",
                             RecipientId: request.HeadId
                         );
@@ -2392,6 +2406,15 @@ namespace TexasAccountsPortal.Infrastructure.Services
                     receipt.FailureReason = null;
                     await db.SaveChangesAsync(ct);
 
+                    var smSuffix = !string.IsNullOrWhiteSpace(receipt.SalesmanName) ? $" (Salesman:{receipt.SalesmanName.Trim()})" : "";
+                    var clName = !string.IsNullOrWhiteSpace(receipt.ClientName) ? receipt.ClientName.Trim() : "Customer";
+                    var clEnding = clName.EndsWith('.') ? "" : ".";
+                    var retryDesc = $"Customer receipt [{spReceipt.DocumentNumber ?? receipt.ReceiptNumber}] for {clName}{clEnding}{smSuffix}";
+                    if (!string.IsNullOrWhiteSpace(receipt.Narration) && !receipt.Narration.StartsWith("Payment Receipt from", StringComparison.OrdinalIgnoreCase) && !receipt.Narration.Equals("Payment Collection", StringComparison.OrdinalIgnoreCase))
+                    {
+                        retryDesc += $" {receipt.Narration.Trim()}";
+                    }
+
                     var idempotencyKey = $"accounts-receipt-customer-{receipt.Id}-retry";
                     var transactionRequest = new TexasAccountsPortal.Contracts.Transactions.CreateIncomingTransactionRequest(
                         DestinationAccountId: isBank ? null : receipt.DestinationAccountId,
@@ -2400,7 +2423,7 @@ namespace TexasAccountsPortal.Infrastructure.Services
                         PaymentMethod: isBank ? "bank" : "cash",
                         ReferenceType: "receipt",
                         ReferenceId: receipt.ReferenceId,
-                        Description: $"Customer receipt [{spReceipt.DocumentNumber ?? receipt.ReceiptNumber}] for {receipt.ClientName}. {(string.IsNullOrWhiteSpace(receipt.Narration) ? "Payment Collection" : receipt.Narration.Trim())}",
+                        Description: retryDesc,
                         RecipientType: "Head",
                         RecipientId: receipt.HeadId
                     );

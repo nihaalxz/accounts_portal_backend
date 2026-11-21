@@ -45,7 +45,7 @@ namespace TexasAccountsPortal.UnitTests
         public Task<ReceiptDetailResponse?> GetReceiptByIdAsync(long id, CancellationToken ct) => throw new NotImplementedException();
         public Task<ReceiptDetailResponse?> GetReceiptByIdentifierAsync(string identifier, CancellationToken ct) => throw new NotImplementedException();
         public Task<PagedResponse<AccountsReceiptSummaryDto>> GetAccountsReceiptsAsync(int page, int pageSize, string? search, DateTime? startDate = null, DateTime? endDate = null, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<IEnumerable<SalesmanResponse>> GetSalesmenAsync(CancellationToken ct) => throw new NotImplementedException();
+        public Task<IEnumerable<SalesmanResponse>> GetSalesmenAsync(CancellationToken ct) => Task.FromResult<IEnumerable<SalesmanResponse>>(new List<SalesmanResponse>());
         public Task<PagedResponse<OpenDealEntryResponse>> GetOpenDealsAsync(int page, int pageSize, string? serviceType = null, string? search = null, long? salesmanId = null, string? paymentStatus = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<OpenDealsSummaryResponse> GetOpenDealsSummaryAsync(string? serviceType = null, string? search = null, long? salesmanId = null, string? paymentStatus = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<IEnumerable<SalesmanReportResponse>> GetSalesmenReportAsync(DateTime? startDate = null, DateTime? endDate = null, CancellationToken ct = default) => throw new NotImplementedException();
@@ -395,7 +395,81 @@ namespace TexasAccountsPortal.UnitTests
             Assert.NotNull(model);
             // Row 0 is Opening, Row 1 is the Receipt
             Assert.Equal("RECEIPT", model.Table.Rows[1][3]);
-            Assert.Equal("Customer receipt [TXSRCPT000018] for mahes Kt.", model.Table.Rows[1][2]);
+            Assert.Equal("Customer receipt [TXSRCPT000018] for mahes Kt. (Salesman:Jamal)", model.Table.Rows[1][2]);
+        }
+
+        [Fact]
+        public async Task BuildAsync_AccountStatement_IncludesSalesmanNameFromAccountsReceipt()
+        {
+            var options = new DbContextOptionsBuilder<AccountsDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var db = new AccountsDbContext(options);
+
+            var cashAcc = new Account
+            {
+                Name = "Main Cash Drawer",
+                Type = AccountType.Cash,
+                CreatedBy = 1,
+                IsActive = true
+            };
+            cashAcc.InitializeBalance(0m);
+            db.Accounts.Add(cashAcc);
+            await db.SaveChangesAsync();
+
+            var ar = new AccountsReceipt
+            {
+                ReceiptNumber = "TXSRCPT000017",
+                ReferenceId = "CRCPT-261121-7017",
+                DestinationType = "account",
+                DestinationAccountId = cashAcc.Id,
+                Amount = 50m,
+                ClientName = "Abdul kader",
+                ClientType = "customer",
+                HeadId = 401,
+                SalesmanName = "Jamal",
+                Status = "success"
+            };
+            db.AccountsReceipts.Add(ar);
+
+            var txReceipt = FinancialTransaction.Create(
+                FinancialTransactionType.Incoming,
+                50m,
+                PaymentMethod.Cash,
+                createdBy: 1,
+                destinationAccountId: cashAcc.Id,
+                referenceType: TransactionReferenceType.Receipt,
+                referenceId: "CRCPT-261121-7017",
+                description: "Customer receipt [TXSRCPT000017] for Abdul kader.",
+                recipientType: RecipientType.Head,
+                recipientId: 401
+            );
+            txReceipt.Approve(1);
+
+            db.Transactions.Add(txReceipt);
+            await db.SaveChangesAsync();
+
+            var builder = new AccountReportDocumentBuilder(
+                db,
+                new FakeSalesEntriesService(),
+                Options.Create(new DocumentOptions()),
+                null
+            );
+
+            var args = new DocumentBuildArgs
+            {
+                Category = "report",
+                Type = "account-statement",
+                EntityId = cashAcc.Id,
+                QueryParams = new Dictionary<string, string>()
+            };
+
+            var model = await builder.BuildAsync(args, CancellationToken.None);
+
+            Assert.NotNull(model);
+            Assert.Equal("RECEIPT", model.Table.Rows[1][3]);
+            Assert.Equal("Customer receipt [TXSRCPT000017] for Abdul kader. (Salesman:Jamal)", model.Table.Rows[1][2]);
         }
     }
 }
