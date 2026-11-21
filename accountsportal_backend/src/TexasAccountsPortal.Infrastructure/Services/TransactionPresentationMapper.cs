@@ -15,8 +15,8 @@ namespace TexasAccountsPortal.Infrastructure.Services
 {
     public class TransactionPresentationMapper : ITransactionPresentationMapper
     {
-        private static readonly ConcurrentDictionary<long, string> ExternalUsersCache = new();
-        private static readonly ConcurrentDictionary<long, string> ExternalHeadsCache = new();
+        public static readonly ConcurrentDictionary<long, string> ExternalUsersCache = new();
+        public static readonly ConcurrentDictionary<long, string> ExternalHeadsCache = new();
 
         private readonly IAccountsDbContext _dbContext;
         private readonly ISalesPortalClient? _salesPortalClient;

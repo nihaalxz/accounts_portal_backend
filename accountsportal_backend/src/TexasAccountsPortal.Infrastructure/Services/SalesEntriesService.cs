@@ -2126,6 +2126,23 @@ namespace TexasAccountsPortal.Infrastructure.Services
 
                 var clientName = !string.IsNullOrWhiteSpace(request.ClientName) ? request.ClientName.Trim() : "Customer Head";
 
+                if ((string.IsNullOrWhiteSpace(clientName) || clientName.Equals("Customer Head", StringComparison.OrdinalIgnoreCase)) && _salesPortalClient != null)
+                {
+                    try
+                    {
+                        var head = await _salesPortalClient.GetHeadByIdAsync(request.HeadId.Value, ct);
+                        if (head != null)
+                        {
+                            var resolvedName = $"{head.FirstName} {head.LastName}".Trim();
+                            if (!string.IsNullOrWhiteSpace(resolvedName))
+                            {
+                                clientName = resolvedName;
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
                 var accountsReceipt = new AccountsReceipt
                 {
                     ReceiptNumber = receiptDocNo,
@@ -2190,7 +2207,9 @@ namespace TexasAccountsPortal.Infrastructure.Services
                             PaymentMethod: isBank ? "bank" : "cash",
                             ReferenceType: "receipt",
                             ReferenceId: cleanRef,
-                            Description: $"Customer receipt [{spReceipt.DocumentNumber ?? receiptDocNo}] for {clientName}. {(string.IsNullOrWhiteSpace(request.Description) ? "Payment Collection" : request.Description.Trim())}",
+                            Description: !string.IsNullOrWhiteSpace(request.Description) && !request.Description.StartsWith("Payment Receipt from", StringComparison.OrdinalIgnoreCase) && !request.Description.Equals("Payment Collection", StringComparison.OrdinalIgnoreCase)
+                                ? $"Customer receipt [{spReceipt.DocumentNumber ?? receiptDocNo}] for {clientName}. {request.Description.Trim()}"
+                                : $"Customer receipt [{spReceipt.DocumentNumber ?? receiptDocNo}] for {clientName}.",
                             RecipientType: "Head",
                             RecipientId: request.HeadId
                         );

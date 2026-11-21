@@ -1,44 +1,27 @@
 using System;
-
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-
 using System.Linq;
-
 using System.Threading;
-
 using System.Threading.Tasks;
-
 using Microsoft.EntityFrameworkCore;
-
 using Microsoft.Extensions.Options;
-
 using TexasAccountsPortal.Application.Features.Documents.Models;
-
 using TexasAccountsPortal.Application.Interfaces;
-
 using TexasAccountsPortal.Domain.Entities;
-
 using TexasAccountsPortal.Domain.Enums;
-
-
 
 namespace TexasAccountsPortal.Application.Features.Documents.Builders;
 
-
-
 public class AccountReportDocumentBuilder : IDocumentBuilder
-
 {
+    private static readonly ConcurrentDictionary<long, string> ExternalHeadsCache = new();
 
     private readonly IAccountsDbContext _dbContext;
-
     private readonly ISalesEntriesService _salesEntriesService;
-
     private readonly DocumentOptions _options;
-
     private readonly ITransactionPresentationMapper? _presentationMapper;
-
-
+    private readonly ISalesPortalClient? _salesPortalClient;
 
     private static readonly HashSet<string> SupportedTypes = new(StringComparer.OrdinalIgnoreCase)
 
@@ -48,8 +31,6 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
 
     };
 
-
-
     public AccountReportDocumentBuilder(
 
         IAccountsDbContext dbContext,
@@ -58,7 +39,9 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
 
         IOptions<DocumentOptions> options,
 
-        ITransactionPresentationMapper? presentationMapper = null)
+        ITransactionPresentationMapper? presentationMapper = null,
+
+        ISalesPortalClient? salesPortalClient = null)
 
     {
 
@@ -69,6 +52,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
         _options = options.Value ?? new DocumentOptions();
 
         _presentationMapper = presentationMapper;
+
+        _salesPortalClient = salesPortalClient;
 
     }
 
@@ -92,6 +77,270 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
 
         return key;
 
+    }
+
+    private async Task<(Dictionary<long, string> heads, Dictionary<long, string> agents, Dictionary<string, AccountsReceipt> receipts)> PreFetchReceiptMetadataAsync(
+        IEnumerable<FinancialTransaction> transactions,
+        CancellationToken ct)
+    {
+        var txList = transactions.ToList();
+        var receiptTxs = txList
+            .Where(t => ResolveStatementTransactionType(t, isBankStatement: false, entityId: 0) == "RECEIPT")
+            .ToList();
+
+        if (!receiptTxs.Any())
+        {
+            return (new Dictionary<long, string>(), new Dictionary<long, string>(), new Dictionary<string, AccountsReceipt>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        var candidateRefIds = receiptTxs
+            .Where(t => !string.IsNullOrWhiteSpace(t.ReferenceId))
+            .Select(t => t.ReferenceId!.Trim())
+            .Concat(receiptTxs.Select(t => t.DocumentNumber).Where(d => !string.IsNullOrWhiteSpace(d)).Select(d => d!.Trim()))
+            .Distinct()
+            .ToList();
+
+        var matchedArList = candidateRefIds.Any()
+            ? await _dbContext.AccountsReceipts
+                .AsNoTracking()
+                .Where(r => candidateRefIds.Contains(r.ReferenceId) ||
+                            candidateRefIds.Contains(r.ReceiptNumber) ||
+                            (r.SalesPortalDocumentNumber != null && candidateRefIds.Contains(r.SalesPortalDocumentNumber)))
+                .ToListAsync(ct)
+            : new List<AccountsReceipt>();
+
+        var receiptsByRef = new Dictionary<string, AccountsReceipt>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in matchedArList)
+        {
+            if (!string.IsNullOrWhiteSpace(r.ReferenceId) && !receiptsByRef.ContainsKey(r.ReferenceId))
+                receiptsByRef[r.ReferenceId] = r;
+            if (!string.IsNullOrWhiteSpace(r.ReceiptNumber) && !receiptsByRef.ContainsKey(r.ReceiptNumber))
+                receiptsByRef[r.ReceiptNumber] = r;
+            if (!string.IsNullOrWhiteSpace(r.SalesPortalDocumentNumber) && !receiptsByRef.ContainsKey(r.SalesPortalDocumentNumber))
+                receiptsByRef[r.SalesPortalDocumentNumber] = r;
+        }
+
+        // Resolve Agents
+        var agentIds = receiptTxs
+            .Where(t => t.RecipientType == RecipientType.Agent && t.RecipientId.HasValue)
+            .Select(t => t.RecipientId!.Value)
+            .Concat(matchedArList.Where(r => r.AgentId.HasValue).Select(r => r.AgentId!.Value))
+            .Distinct()
+            .ToList();
+
+        var agentsDict = agentIds.Any()
+            ? await _dbContext.Agents
+                .AsNoTracking()
+                .Where(a => agentIds.Contains(a.Id))
+                .ToDictionaryAsync(a => a.Id, a => $"{a.FirstName} {a.LastName}".Trim(), ct)
+            : new Dictionary<long, string>();
+
+        // Resolve Heads
+        var headIds = receiptTxs
+            .Where(t => (t.RecipientType == RecipientType.Head || !t.RecipientType.HasValue) && t.RecipientId.HasValue)
+            .Select(t => t.RecipientId!.Value)
+            .Concat(matchedArList.Where(r => r.HeadId.HasValue).Select(r => r.HeadId!.Value))
+            .Distinct()
+            .ToList();
+
+        var headsDict = new Dictionary<long, string>();
+        foreach (var hid in headIds)
+        {
+            if (ExternalHeadsCache.TryGetValue(hid, out var cachedName) && !string.IsNullOrWhiteSpace(cachedName))
+            {
+                headsDict[hid] = cachedName;
+            }
+        }
+
+        var missingHeadIds = headIds.Where(id => !headsDict.ContainsKey(id)).ToList();
+        if (missingHeadIds.Any() && _salesPortalClient != null)
+        {
+            try
+            {
+                var headsResponse = await _salesPortalClient.GetHeadsAsync(1, 5000, null, null, ct);
+                if (headsResponse?.Items != null)
+                {
+                    foreach (var h in headsResponse.Items)
+                    {
+                        var fullName = $"{h.FirstName} {h.LastName}".Trim();
+                        if (!string.IsNullOrWhiteSpace(fullName))
+                        {
+                            ExternalHeadsCache[h.Id] = fullName;
+                            headsDict[h.Id] = fullName;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            var stillMissing = missingHeadIds.Where(id => !headsDict.ContainsKey(id)).ToList();
+            foreach (var hid in stillMissing)
+            {
+                try
+                {
+                    var h = await _salesPortalClient.GetHeadByIdAsync(hid, ct);
+                    if (h != null)
+                    {
+                        var fullName = $"{h.FirstName} {h.LastName}".Trim();
+                        if (!string.IsNullOrWhiteSpace(fullName))
+                        {
+                            ExternalHeadsCache[hid] = fullName;
+                            headsDict[hid] = fullName;
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        return (headsDict, agentsDict, receiptsByRef);
+    }
+
+    private static string FormatStatementNarration(
+        FinancialTransaction t,
+        string txType,
+        TexasAccountsPortal.Contracts.Transactions.TransactionResponse? mt,
+        IReadOnlyDictionary<long, string> headsDict,
+        IReadOnlyDictionary<long, string> agentsDict,
+        IReadOnlyDictionary<string, AccountsReceipt> receiptsByRef,
+        bool isBankStatement)
+    {
+        if (txType == "RECEIPT")
+        {
+            // 1. Extract receipt document number
+            string receiptDocNo = "";
+            var bracketMatch = System.Text.RegularExpressions.Regex.Match(t.Description ?? "", @"\[([^\]]+)\]");
+            if (bracketMatch.Success)
+            {
+                receiptDocNo = bracketMatch.Groups[1].Value.Trim();
+            }
+            else
+            {
+                var codeMatch = System.Text.RegularExpressions.Regex.Match(t.Description ?? "", @"(TXSRCPT\d+|TXS-ARCPT-[\d-]+|[A-Z0-9_-]{6,})", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (codeMatch.Success)
+                {
+                    receiptDocNo = codeMatch.Groups[1].Value.Trim();
+                }
+                else if (!string.IsNullOrWhiteSpace(t.ReferenceId) && (t.ReferenceId.StartsWith("TXS", StringComparison.OrdinalIgnoreCase) || t.ReferenceId.StartsWith("RCP", StringComparison.OrdinalIgnoreCase)))
+                {
+                    receiptDocNo = t.ReferenceId.Trim();
+                }
+                else
+                {
+                    receiptDocNo = mt?.DocumentNumber ?? t.DocumentNumber ?? $"#{t.Id}";
+                }
+            }
+
+            // 2. Identify if Agent or Customer receipt
+            bool isAgentReceipt = t.RecipientType == RecipientType.Agent ||
+                                  (t.Description != null && t.Description.StartsWith("Agent receipt", StringComparison.OrdinalIgnoreCase));
+
+            AccountsReceipt? matchedAr = null;
+            if (!string.IsNullOrWhiteSpace(t.ReferenceId) && receiptsByRef.TryGetValue(t.ReferenceId, out var ar1))
+            {
+                matchedAr = ar1;
+            }
+            else if (!string.IsNullOrWhiteSpace(receiptDocNo) && receiptsByRef.TryGetValue(receiptDocNo, out var ar2))
+            {
+                matchedAr = ar2;
+            }
+
+            if (matchedAr != null && string.Equals(matchedAr.ClientType, "agent", StringComparison.OrdinalIgnoreCase))
+            {
+                isAgentReceipt = true;
+            }
+
+            string receiptPrefix = isAgentReceipt ? "Agent receipt" : "Customer receipt";
+
+            // 3. Resolve Head / Client Name
+            string? resolvedHeadName = null;
+
+            // Check mt?.DisplayRecipientName
+            if (!string.IsNullOrWhiteSpace(mt?.DisplayRecipientName) &&
+                !mt.DisplayRecipientName.Equals("Customer Head", StringComparison.OrdinalIgnoreCase) &&
+                !mt.DisplayRecipientName.Equals("Unknown Customer", StringComparison.OrdinalIgnoreCase) &&
+                !mt.DisplayRecipientName.Equals("Agent", StringComparison.OrdinalIgnoreCase))
+            {
+                resolvedHeadName = mt.DisplayRecipientName.Trim();
+            }
+
+            // Check mt?.SourceParty?.Name
+            if (string.IsNullOrWhiteSpace(resolvedHeadName) &&
+                !string.IsNullOrWhiteSpace(mt?.SourceParty?.Name) &&
+                !mt.SourceParty.Name.Equals("Customer Head", StringComparison.OrdinalIgnoreCase) &&
+                !mt.SourceParty.Name.Equals("Unknown Customer", StringComparison.OrdinalIgnoreCase))
+            {
+                resolvedHeadName = mt.SourceParty.Name.Trim();
+            }
+
+            // Check headsDict for t.RecipientId or matchedAr.HeadId
+            if (string.IsNullOrWhiteSpace(resolvedHeadName))
+            {
+                long? headId = (t.RecipientType == RecipientType.Head || !t.RecipientType.HasValue) ? t.RecipientId : null;
+                if (!headId.HasValue && matchedAr?.HeadId.HasValue == true) headId = matchedAr.HeadId;
+
+                if (headId.HasValue && headsDict.TryGetValue(headId.Value, out var hName) && !string.IsNullOrWhiteSpace(hName))
+                {
+                    resolvedHeadName = hName.Trim();
+                }
+            }
+
+            // Check agentsDict for t.RecipientId or matchedAr.AgentId
+            if (string.IsNullOrWhiteSpace(resolvedHeadName) && isAgentReceipt)
+            {
+                long? agentId = t.RecipientType == RecipientType.Agent ? t.RecipientId : null;
+                if (!agentId.HasValue && matchedAr?.AgentId.HasValue == true) agentId = matchedAr.AgentId;
+
+                if (agentId.HasValue && agentsDict.TryGetValue(agentId.Value, out var agName) && !string.IsNullOrWhiteSpace(agName))
+                {
+                    resolvedHeadName = agName.Trim();
+                }
+            }
+
+            // Check matchedAr.ClientName
+            if (string.IsNullOrWhiteSpace(resolvedHeadName) &&
+                matchedAr != null &&
+                !string.IsNullOrWhiteSpace(matchedAr.ClientName) &&
+                !matchedAr.ClientName.Equals("Customer Head", StringComparison.OrdinalIgnoreCase))
+            {
+                resolvedHeadName = matchedAr.ClientName.Trim();
+            }
+
+            // Check if t.Description has "for <Name>." (and not "Customer Head")
+            if (string.IsNullOrWhiteSpace(resolvedHeadName) && !string.IsNullOrWhiteSpace(t.Description))
+            {
+                var forMatch = System.Text.RegularExpressions.Regex.Match(t.Description, @"for\s+([^.\r\n]+?)(?:\.|$|Payment Receipt|\[Ref:)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (forMatch.Success)
+                {
+                    var candidate = forMatch.Groups[1].Value.Trim();
+                    if (!string.IsNullOrWhiteSpace(candidate) && !candidate.Equals("Customer Head", StringComparison.OrdinalIgnoreCase))
+                    {
+                        resolvedHeadName = candidate;
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedHeadName))
+            {
+                resolvedHeadName = isAgentReceipt ? "Agent" : "Customer";
+            }
+
+            string cleanHead = resolvedHeadName.Trim();
+            return $"{receiptPrefix} [{receiptDocNo}] for {cleanHead}" + (cleanHead.EndsWith('.') ? "" : ".");
+        }
+
+        // Default narration for non-receipts
+        string defaultNarration = t.Description ?? (isBankStatement ? "Bank Movement" : "Cash Movement");
+        string? refText = !string.IsNullOrWhiteSpace(t.ReferenceId)
+            ? $"{t.ReferenceType} #{t.ReferenceId}"
+            : (!string.IsNullOrWhiteSpace(mt?.ReferenceDisplayName) && !mt.ReferenceDisplayName.StartsWith("TRANSACTION #", StringComparison.OrdinalIgnoreCase) ? mt.ReferenceDisplayName : null);
+
+        if (!string.IsNullOrWhiteSpace(refText) && !defaultNarration.Contains(refText, StringComparison.OrdinalIgnoreCase) && !defaultNarration.Contains(t.ReferenceId ?? "___", StringComparison.OrdinalIgnoreCase))
+        {
+            defaultNarration = $"{defaultNarration} [Ref: {refText}]";
+        }
+
+        return defaultNarration;
     }
 
     private static string ResolveStatementTransactionType(FinancialTransaction t, bool isBankStatement, long entityId)
@@ -319,6 +568,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
                 runningBal.ToString("0.000")
             });
 
+            var (headsDict, agentsDict, receiptsByRef) = await PreFetchReceiptMetadataAsync(periodTxs, ct);
+
             decimal periodDebits = 0;
             decimal periodCredits = 0;
 
@@ -332,17 +583,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
                 periodCredits += credit;
 
                 mappedDict.TryGetValue(t.Id, out var mt);
-                string narration = t.Description ?? "Cash Movement";
-                string? refText = !string.IsNullOrWhiteSpace(t.ReferenceId)
-                    ? $"{t.ReferenceType} #{t.ReferenceId}"
-                    : (!string.IsNullOrWhiteSpace(mt?.ReferenceDisplayName) && !mt.ReferenceDisplayName.StartsWith("TRANSACTION #", StringComparison.OrdinalIgnoreCase) ? mt.ReferenceDisplayName : null);
-
-                if (!string.IsNullOrWhiteSpace(refText) && !narration.Contains(refText, StringComparison.OrdinalIgnoreCase) && !narration.Contains(t.ReferenceId ?? "___", StringComparison.OrdinalIgnoreCase))
-                {
-                    narration = $"{narration} [Ref: {refText}]";
-                }
-
                 string txType = ResolveStatementTransactionType(t, isBankStatement: false, entityId: acc.Id);
+                string narration = FormatStatementNarration(t, txType, mt, headsDict, agentsDict, receiptsByRef, isBankStatement: false);
 
                 model.Table.Rows.Add(new List<string>
                 {
@@ -464,6 +706,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
                 runningBal.ToString("0.000")
             });
 
+            var (headsDict, agentsDict, receiptsByRef) = await PreFetchReceiptMetadataAsync(periodTxs, ct);
+
             decimal periodDebits = 0;
             decimal periodCredits = 0;
 
@@ -477,17 +721,8 @@ public class AccountReportDocumentBuilder : IDocumentBuilder
                 periodCredits += credit;
 
                 mappedDict.TryGetValue(t.Id, out var mt);
-                string narration = t.Description ?? "Bank Movement";
-                string? refText = !string.IsNullOrWhiteSpace(t.ReferenceId)
-                    ? $"{t.ReferenceType} #{t.ReferenceId}"
-                    : (!string.IsNullOrWhiteSpace(mt?.ReferenceDisplayName) && !mt.ReferenceDisplayName.StartsWith("TRANSACTION #", StringComparison.OrdinalIgnoreCase) ? mt.ReferenceDisplayName : null);
-
-                if (!string.IsNullOrWhiteSpace(refText) && !narration.Contains(refText, StringComparison.OrdinalIgnoreCase) && !narration.Contains(t.ReferenceId ?? "___", StringComparison.OrdinalIgnoreCase))
-                {
-                    narration = $"{narration} [Ref: {refText}]";
-                }
-
                 string txType = ResolveStatementTransactionType(t, isBankStatement: true, entityId: bank.Id);
+                string narration = FormatStatementNarration(t, txType, mt, headsDict, agentsDict, receiptsByRef, isBankStatement: true);
 
                 model.Table.Rows.Add(new List<string>
                 {

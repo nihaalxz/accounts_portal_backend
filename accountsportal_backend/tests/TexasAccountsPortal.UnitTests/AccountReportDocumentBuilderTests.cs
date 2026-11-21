@@ -321,5 +321,81 @@ namespace TexasAccountsPortal.UnitTests
             Assert.Equal(7, model.Table.TotalRow.Count);
             Assert.Equal("-", model.Table.TotalRow[3]);
         }
+
+        [Fact]
+        public async Task BuildAsync_AccountStatement_ReceiptNarrative_ResolvesHeadName_AndOmitsRedundantClause()
+        {
+            var options = new DbContextOptionsBuilder<AccountsDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var db = new AccountsDbContext(options);
+
+            var cashAcc = new Account
+            {
+                Name = "Main Cash Drawer",
+                Type = AccountType.Cash,
+                CreatedBy = 1,
+                IsActive = true
+            };
+            cashAcc.InitializeBalance(0m);
+            db.Accounts.Add(cashAcc);
+            await db.SaveChangesAsync();
+
+            // Add AccountsReceipt with real head name
+            var ar = new AccountsReceipt
+            {
+                ReceiptNumber = "TXSRCPT000018",
+                ReferenceId = "CRCPT-261121-7044",
+                DestinationType = "account",
+                DestinationAccountId = cashAcc.Id,
+                Amount = 100m,
+                ClientName = "mahes Kt.",
+                ClientType = "customer",
+                HeadId = 405,
+                Status = "success"
+            };
+            db.AccountsReceipts.Add(ar);
+
+            // Add incoming receipt transaction with the old redundant text
+            var txReceipt = FinancialTransaction.Create(
+                FinancialTransactionType.Incoming,
+                100m,
+                PaymentMethod.Cash,
+                createdBy: 1,
+                destinationAccountId: cashAcc.Id,
+                referenceType: TransactionReferenceType.Receipt,
+                referenceId: "CRCPT-261121-7044",
+                description: "Customer receipt [TXSRCPT000018] for Customer Head. Payment Receipt from Client (customer) via Jamal",
+                recipientType: RecipientType.Head,
+                recipientId: 405
+            );
+            txReceipt.Approve(1);
+
+            db.Transactions.Add(txReceipt);
+            await db.SaveChangesAsync();
+
+            var builder = new AccountReportDocumentBuilder(
+                db,
+                new FakeSalesEntriesService(),
+                Options.Create(new DocumentOptions()),
+                null
+            );
+
+            var args = new DocumentBuildArgs
+            {
+                Category = "report",
+                Type = "account-statement",
+                EntityId = cashAcc.Id,
+                QueryParams = new Dictionary<string, string>()
+            };
+
+            var model = await builder.BuildAsync(args, CancellationToken.None);
+
+            Assert.NotNull(model);
+            // Row 0 is Opening, Row 1 is the Receipt
+            Assert.Equal("RECEIPT", model.Table.Rows[1][3]);
+            Assert.Equal("Customer receipt [TXSRCPT000018] for mahes Kt.", model.Table.Rows[1][2]);
+        }
     }
 }
