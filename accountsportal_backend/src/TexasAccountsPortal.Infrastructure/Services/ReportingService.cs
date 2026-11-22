@@ -712,12 +712,13 @@ namespace TexasAccountsPortal.Infrastructure.Services
             var grossProfit = finalizedGrossProfit;
             var grossMarginPercentage = netRevenue > 0m ? Math.Round((grossProfit / netRevenue) * 100m, 2) : 0m;
 
-            // 4. Operating Expenses
+            // 4. Operating Expenses (excludes internal Contra transfers and Payroll payouts which are tracked separately under Payroll)
             var approvedExpenses = await _db.Expenses
                 .AsNoTracking()
                 .Where(e => e.Status == ExpenseStatus.Approved &&
-                            e.ExpenseDate >= start.Date && e.ExpenseDate <= end.Date &&
-                            (string.IsNullOrEmpty(e.CorrelationId) || !e.CorrelationId.StartsWith("ContraTransfer_")))
+                            e.ExpenseDate >= start && e.ExpenseDate <= end &&
+                            (string.IsNullOrEmpty(e.CorrelationId) || 
+                             (!e.CorrelationId.StartsWith("ContraTransfer_") && !e.CorrelationId.StartsWith("SalaryPayout_"))))
                 .ToListAsync(cancellationToken);
 
             var headerIds = approvedExpenses.Select(e => e.ExpenseCategoryId).Distinct().ToList();
