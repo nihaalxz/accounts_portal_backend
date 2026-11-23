@@ -712,13 +712,23 @@ namespace TexasAccountsPortal.Infrastructure.Services
             var grossProfit = finalizedGrossProfit;
             var grossMarginPercentage = netRevenue > 0m ? Math.Round((grossProfit / netRevenue) * 100m, 2) : 0m;
 
-            // 4. Operating Expenses (excludes internal Contra transfers and Payroll payouts which are tracked separately under Payroll)
+            // 4. Operating Expenses (excludes internal Contra transfers, Head/Wallet balance withdrawals, and Payroll payouts which are tracked separately under Payroll)
+            var contraHeaderIds = await _db.ExpenseHeaders
+                .AsNoTracking()
+                .Where(h => h.Category == "Contra" || h.Name == "Internal Contra Transfer" || h.Name == "Head Balance Withdrawal")
+                .Select(h => h.Id)
+                .ToListAsync(cancellationToken);
+
             var approvedExpenses = await _db.Expenses
                 .AsNoTracking()
                 .Where(e => e.Status == ExpenseStatus.Approved &&
                             e.ExpenseDate >= start && e.ExpenseDate <= end &&
+                            !contraHeaderIds.Contains(e.ExpenseCategoryId) &&
                             (string.IsNullOrEmpty(e.CorrelationId) || 
-                             (!e.CorrelationId.StartsWith("ContraTransfer_") && !e.CorrelationId.StartsWith("SalaryPayout_"))))
+                             (!e.CorrelationId.StartsWith("ContraTransfer_") && 
+                              !e.CorrelationId.StartsWith("SalaryPayout_") &&
+                              !e.CorrelationId.StartsWith("WalletWithdrawal_") &&
+                              !e.CorrelationId.StartsWith("HeadWithdrawal_"))))
                 .ToListAsync(cancellationToken);
 
             var headerIds = approvedExpenses.Select(e => e.ExpenseCategoryId).Distinct().ToList();

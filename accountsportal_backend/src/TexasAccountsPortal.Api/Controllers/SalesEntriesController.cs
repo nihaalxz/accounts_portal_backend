@@ -478,6 +478,11 @@ namespace TexasAccountsPortal.Api.Controllers
             [FromQuery] DateTime? endDate = null,
             CancellationToken ct = default)
         {
+            if (startDate.HasValue) startDate = startDate.Value.Date;
+            if (endDate.HasValue && endDate.Value.TimeOfDay == TimeSpan.Zero)
+            {
+                endDate = endDate.Value.Date.AddDays(1).AddTicks(-1);
+            }
             var result = await _salesEntriesService.GetSalesmenReportAsync(startDate, endDate, ct);
             return Ok(result);
         }
@@ -490,6 +495,11 @@ namespace TexasAccountsPortal.Api.Controllers
             [FromQuery] DateTime? endDate = null,
             CancellationToken ct = default)
         {
+            if (startDate.HasValue) startDate = startDate.Value.Date;
+            if (endDate.HasValue && endDate.Value.TimeOfDay == TimeSpan.Zero)
+            {
+                endDate = endDate.Value.Date.AddDays(1).AddTicks(-1);
+            }
             var result = await _salesEntriesService.GetSalesmanProfitRecordsAsync(salesmanId, startDate, endDate, ct);
             return Ok(result);
         }
