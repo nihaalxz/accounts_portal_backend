@@ -1577,7 +1577,33 @@ namespace TexasAccountsPortal.Infrastructure.Services
 
         public async Task<PagedResponse<OpenDealEntryResponse>> GetOpenDealsAsync(int page, int pageSize, string? serviceType = null, string? search = null, long? salesmanId = null, string? paymentStatus = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken ct = default)
         {
-            return await _salesPortalClient.GetOpenDealsAsync(page, pageSize, serviceType, search, salesmanId, paymentStatus, startDate, endDate, ct);
+            var paged = await _salesPortalClient.GetOpenDealsAsync(page, pageSize, serviceType, search, salesmanId, paymentStatus, startDate, endDate, ct);
+            if (paged?.Items != null && paged.Items.Count > 0)
+            {
+                var missingVisaCountry = paged.Items
+                    .Where(x => string.Equals(x.ServiceType, "Visa", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(x.Country))
+                    .ToList();
+
+                if (missingVisaCountry.Count > 0)
+                {
+                    var enrichTasks = missingVisaCountry.Select(async item =>
+                    {
+                        try
+                        {
+                            var detail = await _salesPortalClient.GetVisaApplicationByIdAsync(item.Id, ct);
+                            if (detail != null && !string.IsNullOrWhiteSpace(detail.CountryName ?? detail.Country))
+                            {
+                                var c = detail.CountryName ?? detail.Country;
+                                item.Country = c;
+                                item.CountryName = c;
+                            }
+                        }
+                        catch { }
+                    });
+                    await Task.WhenAll(enrichTasks);
+                }
+            }
+            return paged ?? PagedResponse<OpenDealEntryResponse>.Create(new List<OpenDealEntryResponse>(), 0, page, pageSize);
         }
 
         public async Task<OpenDealsSummaryResponse> GetOpenDealsSummaryAsync(string? serviceType = null, string? search = null, long? salesmanId = null, string? paymentStatus = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken ct = default)

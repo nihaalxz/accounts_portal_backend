@@ -173,7 +173,9 @@ namespace TexasAccountsPortal.Contracts.SalesEntries
         string? ApplicantNames = null,
         long? SupplierId = null,
         string? SupplierName = null,
-        string? Supplier = null
+        string? Supplier = null,
+        string? CountryName = null,
+        string? Country = null
     );
 
     public record VisaApplicantResponse(
@@ -229,7 +231,9 @@ namespace TexasAccountsPortal.Contracts.SalesEntries
         DateTime? UpdatedAt,
         List<VisaApplicantResponse> Applicants,
         string? DocumentNumber = null,
-        bool IsDealClosed = false, bool OperationClosed = false
+        bool IsDealClosed = false, bool OperationClosed = false,
+        string? CountryName = null,
+        string? Country = null
     );
 
     public record VfsAppointmentSummaryResponse(
@@ -997,6 +1001,8 @@ namespace TexasAccountsPortal.Contracts.SalesEntries
         public string? ProcessingStatus { get; set; }
         public bool IsDealClosed { get; set; }
         public bool OperationClosed { get; set; }
+        public string? Country { get; set; }
+        public string? CountryName { get; set; }
     }
 
     public sealed class OpenDealsSummaryResponse
