@@ -435,15 +435,10 @@ namespace TexasAccountsPortal.Infrastructure.Services
                             await _dbContext.SaveChangesAsync(ct);
                         }
 
-                        string expenseNumber;
-                        if (_documentNumberGenerator != null)
-                        {
-                            expenseNumber = await _documentNumberGenerator.GenerateDocumentNumberAsync("TXSEXP", "Seq_ExpenseDocNo", ct);
-                        }
-                        else
-                        {
-                            expenseNumber = $"TXSEXP{transaction.Id:D6}";
-                        }
+                        var expenseNumber = await ExpenseDocumentNumberHelper.GenerateUniqueExpenseNumberAsync(
+                            _dbContext,
+                            _documentNumberGenerator,
+                            ct);
 
                         var expense = Expense.Create(
                             expenseNumber: expenseNumber,
@@ -636,9 +631,10 @@ namespace TexasAccountsPortal.Infrastructure.Services
                         await _dbContext.SaveChangesAsync(ct);
                     }
 
-                    var docNo = _documentNumberGenerator != null
-                        ? await _documentNumberGenerator.GenerateDocumentNumberAsync("TXSEXP", "Seq_ExpenseDocNo", ct)
-                        : $"TXSEXP{DateTime.UtcNow:yyyyMMddHHmmss}{Random.Shared.Next(100, 999)}";
+                    var docNo = await ExpenseDocumentNumberHelper.GenerateUniqueExpenseNumberAsync(
+                        _dbContext,
+                        _documentNumberGenerator,
+                        ct);
 
                     var srcName = sourceAccount != null ? sourceAccount.Name : (sourceBank != null ? sourceBank.BankName : "Cash Account");
                     var destName = destAccount != null ? destAccount.Name : (destBank != null ? destBank.BankName : "Target Account");

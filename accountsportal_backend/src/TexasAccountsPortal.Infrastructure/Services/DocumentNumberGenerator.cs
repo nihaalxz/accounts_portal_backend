@@ -42,8 +42,7 @@ public class DocumentNumberGenerator : IDocumentNumberGenerator
         }
         catch
         {
-            var fallback = DateTime.UtcNow.Ticks % 1000000;
-            return $"{prefix}{fallback:D6}";
+            return $"{prefix}{DateTime.UtcNow:yyyyMMddHHmmss}{Random.Shared.Next(1000, 9999)}";
         }
     }
 }

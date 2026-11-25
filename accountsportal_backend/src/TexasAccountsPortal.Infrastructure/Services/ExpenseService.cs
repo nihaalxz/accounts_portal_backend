@@ -69,8 +69,11 @@ namespace TexasAccountsPortal.Infrastructure.Services
                     cancellationToken);
             }
 
-            // 4. Generate unique document number (TXSEXP000001)
-            var expenseNumber = await _documentNumberGenerator.GenerateDocumentNumberAsync("TXSEXP", "Seq_ExpenseDocNo", cancellationToken);
+            // 4. Generate unique document number (TXSEXP000001), skipping any colliding numbers
+            var expenseNumber = await ExpenseDocumentNumberHelper.GenerateUniqueExpenseNumberAsync(
+                _db,
+                _documentNumberGenerator,
+                cancellationToken);
 
             var expense = Expense.Create(
                 expenseNumber: expenseNumber,

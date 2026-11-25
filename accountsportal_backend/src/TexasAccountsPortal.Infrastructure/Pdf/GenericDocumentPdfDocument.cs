@@ -29,7 +29,7 @@ public class GenericDocumentPdfDocument : IDocument
                 page.Size(PageSizes.A4);
                 page.Margin(18);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(8.5f).FontColor("#334155").FontFamily("Arial"));
+                page.DefaultTextStyle(x => x.FontSize(8.5f).FontColor("#334155").FontFamily("Roboto"));
 
                 page.Content().Border(1).BorderColor("#94a3b8").Padding(16).Column(col =>
                 {

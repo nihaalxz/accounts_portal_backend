@@ -12,8 +12,17 @@ using Microsoft.EntityFrameworkCore;
 using TexasAccountsPortal.Infrastructure.Data;
 using TexasAccountsPortal.Domain.Enums;
 
-// Configure QuestPDF License
+// Configure QuestPDF License & Fonts
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+var fontsDir = Path.Combine(AppContext.BaseDirectory, "Fonts");
+if (Directory.Exists(fontsDir))
+{
+    foreach (var fontFile in Directory.GetFiles(fontsDir, "*.ttf"))
+    {
+        using var fontStream = File.OpenRead(fontFile);
+        QuestPDF.Drawing.FontManager.RegisterFont(fontStream);
+    }
+}
 
 #if DEBUG
 if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")))
